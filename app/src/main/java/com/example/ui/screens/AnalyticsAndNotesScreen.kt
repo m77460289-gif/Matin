@@ -1,0 +1,429 @@
+package com.example.ui.screens
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.EditNote
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.data.model.StudyLogEntity
+import com.example.data.model.StudyNoteEntity
+import com.example.ui.theme.AccentGold
+import com.example.ui.theme.PrimaryIndigo
+import com.example.ui.theme.SecondaryTeal
+import com.example.ui.theme.SuccessGreen
+import com.example.ui.viewmodel.KonkurViewModel
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+@Composable
+fun AnalyticsAndNotesScreen(viewModel: KonkurViewModel) {
+    val logs by viewModel.allLogs.collectAsStateWithLifecycle()
+    val totalMinutes by viewModel.totalMinutes.collectAsStateWithLifecycle()
+    val allProgress by viewModel.allProgress.collectAsStateWithLifecycle()
+    val notes by viewModel.allNotes.collectAsStateWithLifecycle()
+
+    var showAddNoteDialog by remember { mutableStateOf(false) }
+
+    val studiedCount = allProgress.count { it.isStudied }
+    val reviewedCount = allProgress.count { it.isReviewed }
+    val testedCount = allProgress.count { it.isTestPracticed }
+
+    val totalPoodmans = 35 // ۵ پودمان * ۷ کتاب اصلی
+    val overallPercent = (studiedCount.toFloat() / totalPoodmans.toFloat()).coerceIn(0f, 1f)
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .testTag("analytics_screen"),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        // Title
+        item {
+            Column {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.BarChart,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(26.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "آمار مطالعه و دفترچه نکات",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Text(
+                    text = "ثبت عملکرد جلسات ۲ ساعته و فرمول‌ها و نکات کلیدی دروس کامپیوتر",
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        // Summary Statistics Card
+        item {
+            Card(
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "وضعیت تسلط بر پودمان‌های کنکور کامپیوتر",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    LinearProgressIndicator(
+                        progress = { overallPercent },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(12.dp)
+                            .clip(RoundedCornerShape(6.dp)),
+                        color = if (overallPercent >= 1f) SuccessGreen else MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text(text = "مطالعه کتاب", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(text = "$studiedCount از $totalPoodmans", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = SuccessGreen)
+                        }
+                        Column {
+                            Text(text = "مرور خلاصه", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(text = "$reviewedCount از $totalPoodmans", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = SecondaryTeal)
+                        }
+                        Column {
+                            Text(text = "تست‌زنی", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(text = "$testedCount از $totalPoodmans", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = PrimaryIndigo)
+                        }
+                        Column {
+                            Text(text = "ساعات کل", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                text = "${(totalMinutes ?: 0) / 60} ساعت",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                color = AccentGold
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Notes Section Header
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.EditNote,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "دفترچه نکات و خلاصه‌های شخصی",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Button(
+                    onClick = { showAddNoteDialog = true },
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryIndigo),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                    modifier = Modifier.testTag("add_note_btn")
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("نکته جدید", fontSize = 12.sp)
+                }
+            }
+        }
+
+        // Notes List
+        if (notes.isEmpty()) {
+            item {
+                OutlinedCard(
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "هنوز نکته‌ای ثبت نکرده‌اید.",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "فرمول‌های ریاضی، کدهای سی‌شارپ، آدرس‌های IP و نکات مهم پودمان‌ها را اینجا یادداشت کنید تا در روز جمعه مرور کنید.",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.outline
+                        )
+                    }
+                }
+            }
+        } else {
+            items(notes) { note ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = note.title,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = note.bookName,
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            IconButton(onClick = { viewModel.deleteNote(note.id) }) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "حذف",
+                                    tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = note.content,
+                            fontSize = 12.sp,
+                            lineHeight = 18.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
+        }
+
+        // Study History Header
+        item {
+            Row(
+                modifier = Modifier.padding(top = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.History,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "تاریخچه جلسات مطالعه ثبت‌شده",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+
+        // Logs List
+        if (logs.isEmpty()) {
+            item {
+                Text(
+                    text = "هنوز جلسه مطالعه‌ای ثبت نشده است. با اتمام تایمر تمرکز، جلسات به صورت خودکار ثبت خواهند شد.",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else {
+            items(logs) { log ->
+                val dateStr = remember(log.timestamp) {
+                    val sdf = SimpleDateFormat("yyyy/MM/dd - HH:mm", Locale.getDefault())
+                    sdf.format(Date(log.timestamp))
+                }
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = log.subjectTitle,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = PrimaryIndigo.copy(alpha = 0.15f)
+                                ) {
+                                    Text(
+                                        text = "${log.durationMinutes} دقیقه",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = PrimaryIndigo,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                            if (log.note.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = log.note,
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Text(
+                                text = dateStr,
+                                fontSize = 10.sp,
+                                color = MaterialTheme.colorScheme.outline
+                            )
+                        }
+
+                        IconButton(onClick = { viewModel.deleteLog(log.id) }) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "حذف لاگ",
+                                tint = MaterialTheme.colorScheme.outline,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Add Note Dialog
+    if (showAddNoteDialog) {
+        var noteTitle by remember { mutableStateOf("") }
+        var noteBook by remember { mutableStateOf("توسعه برنامه‌سازی (#C)") }
+        var noteContent by remember { mutableStateOf("") }
+
+        AlertDialog(
+            onDismissRequest = { showAddNoteDialog = false },
+            title = { Text(text = "ثبت نکته طلایی جدید", fontSize = 16.sp, fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedTextField(
+                        value = noteTitle,
+                        onValueChange = { noteTitle = it },
+                        label = { Text("عنوان نکته یا فرمول") },
+                        placeholder = { Text("مثال: فرمول ساب‌نتینگ یا اولویت عملگرها") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = noteBook,
+                        onValueChange = { noteBook = it },
+                        label = { Text("کتاب مربوطه") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = noteContent,
+                        onValueChange = { noteContent = it },
+                        label = { Text("متن نکته / کد / توضیح") },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 3
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (noteTitle.isNotBlank() && noteContent.isNotBlank()) {
+                            viewModel.addNote(noteTitle, noteBook, noteContent)
+                            showAddNoteDialog = false
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryIndigo)
+                ) {
+                    Text("ذخیره در دفترچه")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddNoteDialog = false }) {
+                    Text("انصراف")
+                }
+            }
+        )
+    }
+}
