@@ -1,0 +1,56 @@
+name: Build & Release APK
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew 2>/dev/null || true
+
+      - name: Build APK with Gradle
+        run: gradle :app:assembleDebug --stacktrace
+
+      - name: Upload APK to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: konkur-computer-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          name: انتشار اپلیکیشن کنکور کامپیوتر ${{ github.ref_name }}
+          files: app/build/outputs/apk/debug/app-debug.apk
+          body: |
+            ### اپلیکیشن کنکور کامپیوتر فنی‌حرفه‌ای (شبکه و نرم‌افزار)
+            - فایل نصبی: `konkur-computer.apk`
+            - برنامه‌ریزی ۲ ساعت در روز (۱۲۰ دقیقه طلایی)
+            - تحلیل تغییرات کتب درسی دهم، یازدهم و دوازدهم
+            - تایمر تمرکز و بانک تست پودمان‌ها
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
