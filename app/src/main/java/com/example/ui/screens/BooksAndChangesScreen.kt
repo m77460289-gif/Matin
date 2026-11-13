@@ -429,7 +429,6 @@ fun BooksAndChangesScreen(viewModel: KonkurViewModel) {
                                             ResourceChip("تست", hasTests) { viewModel.togglePoodmanStatus(book.id, poodman.index, hasTests = it) }
                                         }
                                     }
-                                    }
                                 }
                             }
                         }
