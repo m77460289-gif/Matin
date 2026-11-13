@@ -29,3 +29,4 @@ build_out.txt
 build_err.txt
 sdk_dl.txt
 _dl*.txt
+job_logs*.txt
