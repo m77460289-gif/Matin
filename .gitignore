@@ -32,3 +32,7 @@ build_err.txt
 sdk_dl.txt
 _dl*.txt
 job_logs*.txt
+release-keystore*
+set_secrets.py
+jdkdl.txt
+*.b64
