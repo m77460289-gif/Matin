@@ -28,6 +28,9 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
+      - name: Decode debug keystore (fallback)
+        run: base64 -d debug.keystore.base64 > debug.keystore && ls -la debug.keystore
+
       - name: Decode release keystore
         run: |
           if [ -n "$RELEASE_KEYSTORE_BASE64" ]; then
