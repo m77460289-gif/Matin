@@ -36,3 +36,8 @@ release-keystore*
 set_secrets.py
 jdkdl.txt
 *.b64
+job*.txt
+curl_dl*.txt
+studio_dl*.txt
+jdkdl.txt
+*.zip

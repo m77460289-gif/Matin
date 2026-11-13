@@ -1,4 +1,5 @@
 import com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesStrategy
+import java.util.Properties
 
 plugins {
   alias(libs.plugins.android.application)
@@ -27,7 +28,7 @@ android {
   signingConfigs {
     create("release") {
       val propsFile = rootProject.file("release-signing.properties")
-      val props = java.util.Properties()
+      val props = Properties()
       if (propsFile.exists()) {
         propsFile.inputStream().use { props.load(it) }
       }
