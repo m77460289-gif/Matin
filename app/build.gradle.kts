@@ -26,11 +26,21 @@ android {
   // and updating Android apps in AI Studio.
   signingConfigs {
     create("release") {
-      val keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"
-      storeFile = file(keystorePath)
-      storePassword = System.getenv("STORE_PASSWORD")
-      keyAlias = "upload"
-      keyPassword = System.getenv("KEY_PASSWORD")
+      val propsFile = rootProject.file("release-signing.properties")
+      val props = java.util.Properties()
+      if (propsFile.exists()) {
+        propsFile.inputStream().use { props.load(it) }
+      }
+      val keystorePath = System.getenv("RELEASE_KEYSTORE_PATH")
+        ?: props.getProperty("storeFile")
+        ?: "${rootDir}/release-keystore.jks"
+      val ksFile = file(keystorePath)
+      if (ksFile.exists()) {
+        storeFile = ksFile
+        storePassword = System.getenv("RELEASE_STORE_PASSWORD") ?: props.getProperty("storePassword")
+        keyAlias = System.getenv("RELEASE_KEY_ALIAS") ?: props.getProperty("keyAlias") ?: "konkur"
+        keyPassword = System.getenv("RELEASE_KEY_PASSWORD") ?: props.getProperty("keyPassword")
+      }
     }
     create("debugConfig") {
       storeFile = file("${rootDir}/debug.keystore")
@@ -45,9 +55,13 @@ android {
       isCrunchPngs = false
       isMinifyEnabled = false
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-      // Do not remove or modify this signingConfig assignment. It is necessary for Android apps in
-      // AI Studio.
-      signingConfig = signingConfigs.getByName("release")
+      // Use release signing if keystore is available, otherwise fall back to debug
+      // so that development builds don't break for contributors without secrets.
+      signingConfig = if (signingConfigs.getByName("release").storeFile != null) {
+        signingConfigs.getByName("release")
+      } else {
+        signingConfigs.getByName("debugConfig")
+      }
     }
     debug {
       // Do not remove or modify this signingConfig assignment. It is necessary for Android apps in

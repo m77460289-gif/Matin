@@ -20,6 +20,8 @@ debug.keystore
 *.zip
 .build-outputs/
 app/build/
+*.jks
+release-signing.properties
 /jdk/
 /android-sdk/
 /sdk_tmp/
