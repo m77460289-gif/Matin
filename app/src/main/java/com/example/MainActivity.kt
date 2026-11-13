@@ -14,12 +14,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Quiz
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Dashboard
+import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Quiz
 import androidx.compose.material.icons.outlined.Timer
@@ -70,6 +72,12 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        if (android.os.Build.VERSION.SDK_INT >= 33) {
+            val perms = arrayOf("android.permission.POST_NOTIFICATIONS")
+            if (checkSelfPermission(perms[0]) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(perms, 1001)
+            }
+        }
         setContent {
             MyApplicationTheme {
                 KonkurApp()
@@ -91,7 +99,8 @@ fun KonkurApp(viewModel: KonkurViewModel = viewModel()) {
         NavTabItem("کتاب‌ها و تغییرات", Icons.Filled.MenuBook, Icons.Outlined.MenuBook, "nav_books"),
         NavTabItem("تایمر تمرکز", Icons.Filled.Timer, Icons.Outlined.Timer, "nav_timer"),
         NavTabItem("آزمونک", Icons.Filled.Quiz, Icons.Outlined.Quiz, "nav_quiz"),
-        NavTabItem("آمار و نکات", Icons.Filled.BarChart, Icons.Outlined.BarChart, "nav_analytics")
+        NavTabItem("آمار و نکات", Icons.Filled.BarChart, Icons.Outlined.BarChart, "nav_analytics"),
+        NavTabItem("برنامه تا کنکور", Icons.Filled.DateRange, Icons.Outlined.DateRange, "nav_annual_plan")
     )
 
     // RTL Provider for Persian
@@ -217,6 +226,7 @@ fun ScreenContent(
         3 -> TimerScreen(viewModel = viewModel)
         4 -> QuizScreen()
         5 -> AnalyticsAndNotesScreen(viewModel = viewModel)
+        6 -> com.example.ui.screens.AnnualPlanScreen(viewModel = viewModel)
         else -> DashboardScreen(
             viewModel = viewModel,
             onNavigateToTimer = { minutes, label ->

@@ -72,7 +72,7 @@ fun AnalyticsAndNotesScreen(viewModel: KonkurViewModel) {
     val reviewedCount = allProgress.count { it.isReviewed }
     val testedCount = allProgress.count { it.isTestPracticed }
 
-    val totalPoodmans = 35 // ۵ پودمان * ۷ کتاب اصلی
+    val totalPoodmans = com.example.data.curriculum.ComputerCurriculumData.books.sumOf { it.poodmans.size }
     val overallPercent = (studiedCount.toFloat() / totalPoodmans.toFloat()).coerceIn(0f, 1f)
 
     LazyColumn(

@@ -26,6 +26,9 @@ data class PoodmanProgressEntity(
     val isStudied: Boolean = false,
     val isReviewed: Boolean = false,
     val isTestPracticed: Boolean = false,
+    val hasVideo: Boolean = false,
+    val hasPdf: Boolean = false,
+    val hasTests: Boolean = false,
     val lastUpdated: Long = System.currentTimeMillis()
 )
 
@@ -50,6 +53,19 @@ data class DailySlotStatusEntity(
     val dateKey: String,
     val slotId: String,
     val isCompleted: Boolean = false
+)
+
+/**
+ * Weekly check-in report (Sunday / Thursday) from the students' progress
+ */
+@Entity(tableName = "weekly_checkins")
+data class CheckInEntity(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0L,
+    val dayType: String, // یکشنبه یا پنجشنبه
+    val completedText: String,
+    val missingText: String,
+    val createdAt: Long = System.currentTimeMillis()
 )
 
 // Domain Data Models

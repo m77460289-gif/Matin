@@ -1,6 +1,7 @@
 package com.example.data.repository
 
 import com.example.data.database.StudyDao
+import com.example.data.model.CheckInEntity
 import com.example.data.model.DailySlotStatusEntity
 import com.example.data.model.PoodmanProgressEntity
 import com.example.data.model.StudyLogEntity
@@ -52,5 +53,15 @@ class StudyRepository(private val dao: StudyDao) {
 
     suspend fun deleteNote(id: Long) {
         dao.deleteNote(id)
+    }
+
+    val allCheckIns: Flow<List<CheckInEntity>> = dao.getAllCheckIns()
+
+    suspend fun addCheckIn(dayType: String, completedText: String, missingText: String): Long {
+        return dao.insertCheckIn(CheckInEntity(dayType = dayType, completedText = completedText, missingText = missingText))
+    }
+
+    suspend fun deleteCheckIn(id: Long) {
+        dao.deleteCheckIn(id)
     }
 }

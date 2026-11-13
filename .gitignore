@@ -20,3 +20,12 @@ debug.keystore
 *.zip
 .build-outputs/
 app/build/
+/jdk/
+/android-sdk/
+/sdk_tmp/
+*.zip
+build_log.txt
+build_out.txt
+build_err.txt
+sdk_dl.txt
+_dl*.txt

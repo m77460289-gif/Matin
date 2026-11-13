@@ -6,10 +6,16 @@ import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.pm.PackageManager
+import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.curriculum.ComputerCurriculumData
 import com.example.data.database.AppDatabase
+import com.example.data.model.CheckInEntity
 import com.example.data.model.DailySlotStatusEntity
 import com.example.data.model.GradeLevel
 import com.example.data.model.PoodmanProgressEntity
@@ -94,6 +100,9 @@ class KonkurViewModel(application: Application) : AndroidViewModel(application) 
         .getSlotStatusesForDate(currentDateKey)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val allCheckIns: StateFlow<List<CheckInEntity>> = repository.allCheckIns
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     // Timer State
     private val _timerState = MutableStateFlow(TimerUiState())
     val timerState: StateFlow<TimerUiState> = _timerState.asStateFlow()
@@ -127,6 +136,7 @@ class KonkurViewModel(application: Application) : AndroidViewModel(application) 
                         isFinished = true
                     )
                     triggerVibration()
+                    triggerCompletionNotification()
                     // Auto log completed minutes
                     val minutesCompleted = _timerState.value.initialSeconds / 60
                     if (minutesCompleted > 0) {
@@ -184,6 +194,31 @@ class KonkurViewModel(application: Application) : AndroidViewModel(application) 
         } catch (_: Exception) {}
     }
 
+    private fun triggerCompletionNotification() {
+        try {
+            val context = getApplication<Application>()
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
+            val channelId = "timer_complete"
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val channel = NotificationChannel(channelId, "اتمام تایمر", NotificationManager.IMPORTANCE_HIGH)
+                notificationManager.createNotificationChannel(channel)
+            }
+            if (Build.VERSION.SDK_INT >= 33) {
+                if (ContextCompat.checkSelfPermission(context, "android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED) {
+                    return
+                }
+            }
+            val notification = NotificationCompat.Builder(context, channelId)
+                .setSmallIcon(android.R.drawable.ic_popup_reminder)
+                .setContentTitle("تایمر به پایان رسید ✅")
+                .setContentText("${_timerState.value.sessionLabel} در گزارش ثبت شد")
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setAutoCancel(true)
+                .build()
+            notificationManager.notify(1001, notification)
+        } catch (_: Exception) {}
+    }
+
     // Toggle Slot Checklist
     fun toggleSlot(slotId: String, currentCompleted: Boolean) {
         viewModelScope.launch {
@@ -197,7 +232,10 @@ class KonkurViewModel(application: Application) : AndroidViewModel(application) 
         poodmanIndex: Int,
         studied: Boolean? = null,
         reviewed: Boolean? = null,
-        tested: Boolean? = null
+        tested: Boolean? = null,
+        hasVideo: Boolean? = null,
+        hasPdf: Boolean? = null,
+        hasTests: Boolean? = null
     ) {
         viewModelScope.launch {
             val existing = allProgress.value.find { it.bookId == bookId && it.poodmanIndex == poodmanIndex }
@@ -207,6 +245,9 @@ class KonkurViewModel(application: Application) : AndroidViewModel(application) 
                 isStudied = studied ?: existing?.isStudied ?: false,
                 isReviewed = reviewed ?: existing?.isReviewed ?: false,
                 isTestPracticed = tested ?: existing?.isTestPracticed ?: false,
+                hasVideo = hasVideo ?: existing?.hasVideo ?: false,
+                hasPdf = hasPdf ?: existing?.hasPdf ?: false,
+                hasTests = hasTests ?: existing?.hasTests ?: false,
                 lastUpdated = System.currentTimeMillis()
             )
             repository.savePoodmanProgress(updated)
@@ -236,6 +277,19 @@ class KonkurViewModel(application: Application) : AndroidViewModel(application) 
     fun deleteNote(id: Long) {
         viewModelScope.launch {
             repository.deleteNote(id)
+        }
+    }
+
+    // Weekly Check-ins (یکشنبه / پنجشنبه)
+    fun addCheckIn(dayType: String, completedText: String, missingText: String) {
+        viewModelScope.launch {
+            repository.addCheckIn(dayType, completedText, missingText)
+        }
+    }
+
+    fun deleteCheckIn(id: Long) {
+        viewModelScope.launch {
+            repository.deleteCheckIn(id)
         }
     }
 }

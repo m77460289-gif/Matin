@@ -38,6 +38,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Surface
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -60,6 +61,16 @@ import com.example.ui.theme.PrimaryIndigo
 import com.example.ui.theme.SecondaryTeal
 import com.example.ui.theme.SuccessGreen
 import com.example.ui.viewmodel.KonkurViewModel
+
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun ResourceChip(label: String, selected: Boolean, onToggle: (Boolean) -> Unit) {
+    FilterChip(
+        selected = selected,
+        onClick = { onToggle(!selected) },
+        label = { Text(label, fontSize = 11.sp) }
+    )
+}
 
 @Composable
 fun BooksAndChangesScreen(viewModel: KonkurViewModel) {
@@ -276,6 +287,9 @@ fun BooksAndChangesScreen(viewModel: KonkurViewModel) {
                                 val isStudied = progress?.isStudied ?: false
                                 val isReviewed = progress?.isReviewed ?: false
                                 val isTested = progress?.isTestPracticed ?: false
+                                val hasVideo = progress?.hasVideo ?: false
+                                val hasPdf = progress?.hasPdf ?: false
+                                val hasTests = progress?.hasTests ?: false
 
                                 Card(
                                     modifier = Modifier
@@ -392,6 +406,29 @@ fun BooksAndChangesScreen(viewModel: KonkurViewModel) {
                                                 Text(text = "تست‌زنی", fontSize = 11.sp)
                                             }
                                         }
+
+                                        HorizontalDivider(
+                                            modifier = Modifier.padding(vertical = 6.dp),
+                                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
+                                        )
+
+                                        // Resource availability (منابع)
+                                        Text(
+                                            text = "منابع موجود برای این پودمان:",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = SecondaryTeal
+                                        )
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceEvenly
+                                        ) {
+                                            ResourceChip("فیلم", hasVideo) { viewModel.togglePoodmanStatus(book.id, poodman.index, hasVideo = it) }
+                                            ResourceChip("جزوه", hasPdf) { viewModel.togglePoodmanStatus(book.id, poodman.index, hasPdf = it) }
+                                            ResourceChip("تست", hasTests) { viewModel.togglePoodmanStatus(book.id, poodman.index, hasTests = it) }
+                                        }
+                                    }
                                     }
                                 }
                             }

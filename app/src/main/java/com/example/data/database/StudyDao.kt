@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import com.example.data.model.CheckInEntity
 import com.example.data.model.DailySlotStatusEntity
 import com.example.data.model.PoodmanProgressEntity
 import com.example.data.model.StudyLogEntity
@@ -52,4 +53,14 @@ interface StudyDao {
 
     @Query("DELETE FROM study_notes WHERE id = :id")
     suspend fun deleteNote(id: Long)
+
+    // Weekly Check-ins
+    @Query("SELECT * FROM weekly_checkins ORDER BY createdAt DESC")
+    fun getAllCheckIns(): Flow<List<CheckInEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertCheckIn(checkIn: CheckInEntity): Long
+
+    @Query("DELETE FROM weekly_checkins WHERE id = :id")
+    suspend fun deleteCheckIn(id: Long)
 }
