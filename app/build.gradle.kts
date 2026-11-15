@@ -17,8 +17,8 @@ android {
     applicationId = "com.aistudio.konkurcomputer.vtfplq"
     minSdk = 24
     targetSdk = 36
-    versionCode = 10
-    versionName = "1.10.0"
+    versionCode = 11
+    versionName = "1.11.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }

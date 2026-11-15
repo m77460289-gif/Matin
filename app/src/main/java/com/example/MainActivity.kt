@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Quiz
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.SupervisorAccount
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.outlined.BarChart
 import androidx.compose.material.icons.outlined.CalendarMonth
@@ -26,6 +27,7 @@ import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Quiz
 import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material.icons.outlined.SupervisorAccount
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -58,6 +60,7 @@ import com.example.ui.screens.BooksAndChangesScreen
 import com.example.ui.screens.DashboardScreen
 import com.example.ui.screens.LeitnerScreen
 import com.example.ui.screens.QuizSimulatorScreen
+import com.example.ui.screens.ParentReportScreen
 import com.example.ui.screens.QuizScreen
 import com.example.ui.screens.TimerScreen
 import com.example.ui.screens.TwoHourScheduleScreen
@@ -110,7 +113,8 @@ fun KonkurApp(viewModel: KonkurViewModel = viewModel()) {
         NavTabItem("آمار و نکات", Icons.Filled.BarChart, Icons.Outlined.BarChart, "nav_analytics"),
         NavTabItem("برنامه تا کنکور", Icons.Filled.DateRange, Icons.Outlined.DateRange, "nav_annual_plan"),
         NavTabItem("مرور امروز", Icons.Filled.Refresh, Icons.Outlined.Refresh, "nav_leitner"),
-        NavTabItem("آزمون شبیه‌ساز", Icons.Filled.Timer, Icons.Outlined.Timer, "nav_simulator")
+        NavTabItem("آزمون شبیه‌ساز", Icons.Filled.Timer, Icons.Outlined.Timer, "nav_simulator"),
+        NavTabItem("پنل والد", Icons.Filled.SupervisorAccount, Icons.Outlined.SupervisorAccount, "nav_parent")
     )
 
     // RTL Provider for Persian
@@ -239,6 +243,7 @@ fun ScreenContent(
         6 -> com.example.ui.screens.AnnualPlanScreen(viewModel = viewModel)
         7 -> LeitnerScreen(viewModel = viewModel)
         8 -> QuizSimulatorScreen(viewModel = viewModel)
+        9 -> ParentReportScreen(viewModel = viewModel)
         else -> DashboardScreen(
             viewModel = viewModel,
             onNavigateToTimer = { minutes, label ->

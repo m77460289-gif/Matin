@@ -125,6 +125,13 @@ app/src/main/java/com/example/
 - کارت استریک در `DashboardScreen` — «🔥 X روز پیوسته مطالعه کردی»
 - سوییچ فعال/غیرفعال در `AnalyticsAndNotesScreen` + `SharedPreferences` (`app_prefs` / `daily_reminder_enabled`)
 
+## 👨‍👩‍👧 پنل والد (خلاصه هفتگی)
+
+- تب `nav_parent` (`ParentReportScreen`)
+- خلاصه هفته گذشته: دقیقه مطالعه + تعداد جلسه + استریک + آخرین نمره
+- پودمان‌های عقب‌مانده (مطالعه شده اما تست نشده)
+- دکمه «📤 ارسال گزارش به تلگرام/واتساپ» با `Intent.ACTION_SEND`
+
 ## ⏱️ آزمون شبیه‌ساز (۲۵ سوال / ۳۰ دقیقه)
 
 - تب `nav_simulator` (`QuizSimulatorScreen`)

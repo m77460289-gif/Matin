@@ -144,6 +144,13 @@
 | `DashboardScreen` Streak Card | کارت 🔥 نمایش استریک |
 | `AnalyticsAndNotesScreen` | سوییچ فعال/غیرفعال یادآور |
 
+#### پنل والد (خلاصه هفتگی)
+| فایل | نقش |
+|---|---|
+| `ui/screens/ParentReportScreen.kt` | خلاصه هفته + پودمان‌های عقب‌مانده + دکمه اشتراک‌گذاری |
+| `MainActivity` (index 9) | تب «پنل والد» |
+| `buildReportText()` | ساخت متن گزارش و اشتراک با `Intent.ACTION_SEND` |
+
 #### تم
 | فایل | نقش |
 |---|---|
