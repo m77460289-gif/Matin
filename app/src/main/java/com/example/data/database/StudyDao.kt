@@ -8,6 +8,7 @@ import com.example.data.model.CheckInEntity
 import com.example.data.model.DailySlotStatusEntity
 import com.example.data.model.LeitnerCardEntity
 import com.example.data.model.WrongAnswerEntity
+import com.example.data.model.WeeklyScoreEntity
 import com.example.data.model.PoodmanProgressEntity
 import com.example.data.model.StudyLogEntity
 import com.example.data.model.StudyNoteEntity
@@ -97,4 +98,14 @@ interface StudyDao {
 
     @Query("DELETE FROM wrong_answers")
     suspend fun clearWrongAnswers()
+
+    // Weekly Exam Scores
+    @Query("SELECT * FROM weekly_scores ORDER BY weekNumber ASC")
+    fun getAllWeeklyScores(): Flow<List<WeeklyScoreEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertWeeklyScore(score: WeeklyScoreEntity): Long
+
+    @Query("DELETE FROM weekly_scores WHERE id = :id")
+    suspend fun deleteWeeklyScore(id: Long)
 }

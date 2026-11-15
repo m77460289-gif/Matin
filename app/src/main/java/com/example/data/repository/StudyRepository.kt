@@ -5,6 +5,7 @@ import com.example.data.model.CheckInEntity
 import com.example.data.model.DailySlotStatusEntity
 import com.example.data.model.LeitnerCardEntity
 import com.example.data.model.WrongAnswerEntity
+import com.example.data.model.WeeklyScoreEntity
 import com.example.data.model.PoodmanProgressEntity
 import com.example.data.model.StudyLogEntity
 import com.example.data.model.StudyNoteEntity
@@ -84,6 +85,13 @@ class StudyRepository(private val dao: StudyDao) {
     suspend fun removeWrongAnswer(questionId: Int) = dao.deleteWrongAnswer(questionId)
 
     suspend fun clearWrongAnswers() = dao.clearWrongAnswers()
+
+    val allWeeklyScores: Flow<List<WeeklyScoreEntity>> = dao.getAllWeeklyScores()
+
+    suspend fun addWeeklyScore(weekNumber: Int, scorePercent: Int, examTitle: String): Long =
+        dao.insertWeeklyScore(WeeklyScoreEntity(weekNumber = weekNumber, scorePercent = scorePercent, examTitle = examTitle))
+
+    suspend fun deleteWeeklyScore(id: Long) = dao.deleteWeeklyScore(id)
 
     val allCheckIns: Flow<List<CheckInEntity>> = dao.getAllCheckIns()
 

@@ -98,6 +98,19 @@ data class WrongAnswerEntity(
     val isMastered: Boolean = false
 )
 
+/**
+ * Weekly exam score entry. One record per week (weekNumber 1..30), tracking percent progress.
+ */
+@Entity(tableName = "weekly_scores")
+data class WeeklyScoreEntity(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0L,
+    val weekNumber: Int,
+    val scorePercent: Int,
+    val examTitle: String = "آزمون هفتگی",
+    val recordedAt: Long = System.currentTimeMillis()
+)
+
 // Domain Data Models
 enum class GradeLevel(val titleFa: String) {
     GRADE_10("پایه دهم"),

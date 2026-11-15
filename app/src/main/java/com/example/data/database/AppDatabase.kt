@@ -8,6 +8,7 @@ import com.example.data.model.CheckInEntity
 import com.example.data.model.DailySlotStatusEntity
 import com.example.data.model.LeitnerCardEntity
 import com.example.data.model.WrongAnswerEntity
+import com.example.data.model.WeeklyScoreEntity
 import com.example.data.model.PoodmanProgressEntity
 import com.example.data.model.StudyLogEntity
 import com.example.data.model.StudyNoteEntity
@@ -20,9 +21,10 @@ import com.example.data.model.StudyNoteEntity
         DailySlotStatusEntity::class,
         CheckInEntity::class,
         LeitnerCardEntity::class,
-        WrongAnswerEntity::class
+        WrongAnswerEntity::class,
+        WeeklyScoreEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

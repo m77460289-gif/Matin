@@ -113,6 +113,13 @@
 | `ui/screens/QuizSimulatorScreen.kt` | ۲۵ سوال / ۳۰ دقیقه با تایمر واقعی، زمان هر سوال، درصد و تحلیل ضعیف‌ترین پودمان |
 | `MainActivity` (index 8) | تب «آزمون شبیه‌ساز» + دکمه میان‌بر در `QuizScreen` |
 
+#### ثبت نمره آزمون‌های هفتگی (روند پیشرفت)
+| فایل | نقش |
+|---|---|
+| `WeeklyScoreEntity` (در `Models.kt`) | جدول `weekly_scores` — هفته، درصد نمره، عنوان آزمون |
+| `AnalyticsAndNotesScreen` → `WeeklyScoreTrendSection` | نمودار خطی (Canvas) + آمار آخرین/بهترین/تغییر |
+| `KonkurViewModel.addWeeklyScore()` | ثبت نمره هفتگی برای تحلیل روند |
+
 #### تم
 | فایل | نقش |
 |---|---|

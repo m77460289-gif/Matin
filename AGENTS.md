@@ -105,6 +105,7 @@ app/src/main/java/com/example/
 | `weekly_checkins` | auto id | گزارش یکشنبه/پنجشنبه |
 | `leitner_cards` | (bookId, poodmanIndex) | جعبه لایتنر — مرور فاصله‌دار ۱/۳/۷/۱۴/۳۰ روز |
 | `wrong_answers` | questionId | دفترچه اشتباهات — سوالات غلط آزمونک |
+| `weekly_scores` | auto id | نمره آزمون‌های هفتگی (هفته ۱ تا ۳۰) + روند نمودار خطی |
 
 ## ⏱️ آزمون شبیه‌ساز (۲۵ سوال / ۳۰ دقیقه)
 

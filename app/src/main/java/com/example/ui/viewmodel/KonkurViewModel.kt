@@ -20,6 +20,7 @@ import com.example.data.model.DailySlotStatusEntity
 import com.example.data.model.GradeLevel
 import com.example.data.model.LeitnerCardEntity
 import com.example.data.model.WrongAnswerEntity
+import com.example.data.model.WeeklyScoreEntity
 import com.example.data.model.PoodmanProgressEntity
 import com.example.data.model.StudyLogEntity
 import com.example.data.model.StudyNoteEntity
@@ -213,6 +214,18 @@ class KonkurViewModel(application: Application) : AndroidViewModel(application) 
 
     fun clearWrongAnswers() {
         viewModelScope.launch { repository.clearWrongAnswers() }
+    }
+
+    // Weekly Exam Scores (Progress Trend)
+    val allWeeklyScores: StateFlow<List<WeeklyScoreEntity>> = repository.allWeeklyScores
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun addWeeklyScore(weekNumber: Int, scorePercent: Int, examTitle: String) {
+        viewModelScope.launch { repository.addWeeklyScore(weekNumber, scorePercent, examTitle) }
+    }
+
+    fun deleteWeeklyScore(id: Long) {
+        viewModelScope.launch { repository.deleteWeeklyScore(id) }
     }
 
     // Timer State

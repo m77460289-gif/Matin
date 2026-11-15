@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -14,12 +15,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.unit.Dp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -42,7 +45,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -50,6 +58,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.model.StudyLogEntity
 import com.example.data.model.StudyNoteEntity
+import com.example.data.model.WeeklyScoreEntity
 import com.example.ui.theme.AccentGold
 import com.example.ui.theme.PrimaryIndigo
 import com.example.ui.theme.SecondaryTeal
@@ -67,6 +76,8 @@ fun AnalyticsAndNotesScreen(viewModel: KonkurViewModel) {
     val notes by viewModel.allNotes.collectAsStateWithLifecycle()
 
     var showAddNoteDialog by remember { mutableStateOf(false) }
+    var showAddScoreDialog by remember { mutableStateOf(false) }
+    val weeklyScores by viewModel.allWeeklyScores.collectAsStateWithLifecycle()
 
     val studiedCount = allProgress.count { it.isStudied }
     val reviewedCount = allProgress.count { it.isReviewed }
@@ -163,6 +174,15 @@ fun AnalyticsAndNotesScreen(viewModel: KonkurViewModel) {
                     }
                 }
             }
+        }
+
+        // Weekly Exam Score Trend
+        item {
+            WeeklyScoreTrendSection(
+                scores = weeklyScores,
+                onAddClick = { showAddScoreDialog = true },
+                onDelete = { viewModel.deleteWeeklyScore(it) }
+            )
         }
 
         // Notes Section Header
@@ -371,6 +391,56 @@ fun AnalyticsAndNotesScreen(viewModel: KonkurViewModel) {
                 }
             }
         }
+    }
+
+    // Add Weekly Score Dialog
+    if (showAddScoreDialog) {
+        var weekStr by remember { mutableStateOf((weeklyScores.maxOfOrNull { it.weekNumber }?.plus(1) ?: 1).toString()) }
+        var scoreStr by remember { mutableStateOf("") }
+        var examTitle by remember { mutableStateOf("آزمون هفتگی") }
+
+        AlertDialog(
+            onDismissRequest = { showAddScoreDialog = false },
+            title = { Text(text = "ثبت نمره آزمون هفتگی", fontSize = 16.sp, fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedTextField(
+                        value = weekStr,
+                        onValueChange = { weekStr = it.filter { c -> c.isDigit() }.take(2) },
+                        label = { Text("شماره هفته (۱ تا ۳۰)") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = scoreStr,
+                        onValueChange = { scoreStr = it.filter { c -> c.isDigit() }.take(3) },
+                        label = { Text("درصد نمره (۰ تا ۱۰۰)") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = examTitle,
+                        onValueChange = { examTitle = it },
+                        label = { Text("عنوان آزمون (اختیاری)") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val w = weekStr.toIntOrNull()
+                        val s = scoreStr.toIntOrNull()
+                        if (w != null && s != null && w in 1..30 && s in 0..100) {
+                            viewModel.addWeeklyScore(w, s, examTitle.ifBlank { "آزمون هفتگی" })
+                            showAddScoreDialog = false
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryIndigo)
+                ) { Text("ثبت") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddScoreDialog = false }) { Text("انصراف") }
+            }
+        )
     }
 
     // Add Note Dialog
