@@ -151,6 +151,13 @@
 | `MainActivity` (index 9) | تب «پنل والد» |
 | `buildReportText()` | ساخت متن گزارش و اشتراک با `Intent.ACTION_SEND` |
 
+#### پشتیبان‌گیری و بازیابی (JSON)
+| فایل | نقش |
+|---|---|
+| `data/backup/BackupManager.kt` | خروجی/ورودی JSON کامل ۶ جدول |
+| `AnalyticsAndNotesScreen` → `BackupSection` | دکمه‌های خروجی/ورودی با File Picker سیستم |
+| `KonkurViewModel.exportBackupJson/importBackupJson` | میانجی UI ← BackupManager |
+
 #### تم
 | فایل | نقش |
 |---|---|

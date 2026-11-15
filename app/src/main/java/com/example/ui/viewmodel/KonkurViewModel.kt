@@ -229,6 +229,17 @@ class KonkurViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch { repository.deleteWeeklyScore(id) }
     }
 
+    // Backup / restore
+    suspend fun exportBackupJson(): String {
+        val db = AppDatabase.getDatabase(getApplication())
+        return com.example.data.backup.BackupManager.exportToJson(db)
+    }
+
+    suspend fun importBackupJson(json: String): com.example.data.backup.BackupManager.ImportResult {
+        val db = AppDatabase.getDatabase(getApplication())
+        return com.example.data.backup.BackupManager.importFromJson(db, json)
+    }
+
     // Streak — consecutive days with at least one study log
     val studyStreak: StateFlow<Int> = allLogs.map { logs ->
         if (logs.isEmpty()) 0 else {

@@ -108,4 +108,39 @@ interface StudyDao {
 
     @Query("DELETE FROM weekly_scores WHERE id = :id")
     suspend fun deleteWeeklyScore(id: Long)
+
+    // Backup/restore — one-shot getters (suspend)
+    @Query("SELECT * FROM study_logs ORDER BY timestamp DESC")
+    suspend fun getAllStudyLogsOnce(): List<StudyLogEntity>
+
+    @Query("SELECT * FROM poodman_progress")
+    suspend fun getAllProgressOnce(): List<PoodmanProgressEntity>
+
+    @Query("SELECT * FROM study_notes ORDER BY createdAt DESC")
+    suspend fun getAllNotesOnce(): List<StudyNoteEntity>
+
+    @Query("SELECT * FROM leitner_cards")
+    suspend fun getAllLeitnerCardsOnce(): List<LeitnerCardEntity>
+
+    @Query("SELECT * FROM wrong_answers")
+    suspend fun getAllWrongAnswersOnce(): List<WrongAnswerEntity>
+
+    @Query("SELECT * FROM weekly_scores")
+    suspend fun getAllWeeklyScoresOnce(): List<WeeklyScoreEntity>
+
+    // Backup/restore — clear helpers
+    @Query("DELETE FROM study_logs")
+    suspend fun clearAllStudyLogs()
+
+    @Query("DELETE FROM poodman_progress")
+    suspend fun clearAllProgress()
+
+    @Query("DELETE FROM study_notes")
+    suspend fun clearAllNotes()
+
+    @Query("DELETE FROM leitner_cards")
+    suspend fun clearAllLeitnerCards()
+
+    @Query("DELETE FROM weekly_scores")
+    suspend fun clearAllWeeklyScores()
 }

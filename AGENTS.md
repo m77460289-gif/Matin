@@ -132,6 +132,17 @@ app/src/main/java/com/example/
 - پودمان‌های عقب‌مانده (مطالعه شده اما تست نشده)
 - دکمه «📤 ارسال گزارش به تلگرام/واتساپ» با `Intent.ACTION_SEND`
 
+## 💾 پشتیبان‌گیری و بازیابی (JSON)
+
+- `data/backup/BackupManager.kt` — خروجی/ورودی JSON از همه جدول‌ها
+- جدول‌های پشتیبان: `study_logs`, `poodman_progress`, `study_notes`, `leitner_cards`, `wrong_answers`, `weekly_scores`
+- UI در `AnalyticsAndNotesScreen` → `BackupSection`:
+  - «📤 خروجی JSON» → `ActivityResultContracts.CreateDocument`
+  - «📥 ورودی JSON» → `ActivityResultContracts.OpenDocument`
+- ⚠️ بازیابی، همه داده‌های فعلی را پاک و جایگزین می‌کند
+- DAO: `getAll*Once()` (suspend) و `clearAll*()` برای backup
+- فایل ذخیره‌شده را می‌توان در Google Drive / حافظه خارجی آپلود کرد
+
 ## ⏱️ آزمون شبیه‌ساز (۲۵ سوال / ۳۰ دقیقه)
 
 - تب `nav_simulator` (`QuizSimulatorScreen`)

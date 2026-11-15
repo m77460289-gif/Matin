@@ -39,7 +39,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.filled.Backup
+import androidx.compose.material.icons.filled.Restore
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -77,6 +83,7 @@ fun AnalyticsAndNotesScreen(viewModel: KonkurViewModel) {
 
     var showAddNoteDialog by remember { mutableStateOf(false) }
     var showAddScoreDialog by remember { mutableStateOf(false) }
+    var backupMsg by remember { mutableStateOf<String?>(null) }
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val prefs = remember { ctx.getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE) }
     var reminderOn by remember { mutableStateOf(prefs.getBoolean("daily_reminder_enabled", true)) }
@@ -177,6 +184,14 @@ fun AnalyticsAndNotesScreen(viewModel: KonkurViewModel) {
                     }
                 }
             }
+        }
+
+        // Backup & Restore
+        item {
+            BackupSection(
+                viewModel = viewModel,
+                onMessage = { backupMsg = it }
+            )
         }
 
         // Daily Reminder Setting
@@ -434,6 +449,17 @@ fun AnalyticsAndNotesScreen(viewModel: KonkurViewModel) {
         }
     }
 
+    backupMsg?.let { msg ->
+        AlertDialog(
+            onDismissRequest = { backupMsg = null },
+            title = { Text("📦 پشتیبان‌گیری", fontSize = 15.sp, fontWeight = FontWeight.Bold) },
+            text = { Text(msg, fontSize = 13.sp) },
+            confirmButton = {
+                TextButton(onClick = { backupMsg = null }) { Text("باشه") }
+            }
+        )
+    }
+
     // Add Weekly Score Dialog
     if (showAddScoreDialog) {
         var weekStr by remember { mutableStateOf((weeklyScores.maxOfOrNull { it.weekNumber }?.plus(1) ?: 1).toString()) }
@@ -536,5 +562,296 @@ fun AnalyticsAndNotesScreen(viewModel: KonkurViewModel) {
                 }
             }
         )
+    }
+}
+
+@Composable
+private fun BackupSection(
+    viewModel: KonkurViewModel,
+    onMessage: (String) -> Unit
+) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            try {
+                val json = viewModel.exportBackupJson()
+                com.example.data.backup.BackupManager.writeJsonToUri(context, uri, json)
+                onMessage("✅ فایل پشتیبان با موفقیت ذخیره شد.\n\nمحل ذخیره را در گالری فایل‌ها یا Google Drive ببینید.")
+            } catch (e: Exception) {
+                onMessage("❌ خطا در ذخیره فایل: ${e.message}")
+            }
+        }
+    }
+
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            try {
+                val json = com.example.data.backup.BackupManager.readJsonFromUri(context, uri)
+                val result = viewModel.importBackupJson(json)
+                onMessage("✅ بازیابی موفق:\n\n• ${result.logs} جلسه مطالعه\n• ${result.progress} پیشرفت پودمان\n• ${result.notes} نکته\n• ${result.leitner} کارت لایتنر\n• ${result.wrongAnswers} سوال غلط\n• ${result.scores} نمره آزمون\n\nمجموع: ${result.total} رکورد")
+            } catch (e: Exception) {
+                onMessage("❌ خطا در بازیابی: ${e.message}\n\nمطمئن شوید فایل JSON معتبر است.")
+            }
+        }
+    }
+
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = SecondaryTeal.copy(alpha = 0.08f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Backup,
+                    contentDescription = null,
+                    tint = SecondaryTeal,
+                    modifier = Modifier.size(22.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("پشتیبان‌گیری و بازیابی", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                "اگر گوشی عوض شد، اطلاعات مطالعه از دست می‌رود. هر هفته یک نسخه پشتیبان بگیرید.",
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    onClick = {
+                        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                        val fname = "konkur-backup-${sdf.format(Date())}.json"
+                        exportLauncher.launch(fname)
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("export_backup_btn"),
+                    colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
+                    shape = RoundedCornerShape(10.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp)
+                ) {
+                    Icon(Icons.Default.Backup, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("📤 خروجی JSON", fontSize = 12.sp)
+                }
+                Button(
+                    onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) },
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("import_backup_btn"),
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryIndigo),
+                    shape = RoundedCornerShape(10.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp)
+                ) {
+                    Icon(Icons.Default.Restore, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("📥 ورودی JSON", fontSize = 12.sp)
+                }
+            }
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                "⚠️ بازیابی، داده‌های فعلی را جایگزین می‌کند. قبل از بازیابی، ابتدا خروجی بگیرید.",
+                fontSize = 10.sp,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
+    }
+}
+
+@Composable
+private fun WeeklyScoreTrendSection(
+    scores: List<WeeklyScoreEntity>,
+    onAddClick: () -> Unit,
+    onDelete: (Long) -> Unit
+) {
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.ShowChart,
+                        contentDescription = null,
+                        tint = PrimaryIndigo,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("روند نمره آزمون‌های هفتگی", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                }
+                Button(
+                    onClick = onAddClick,
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryIndigo),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                    modifier = Modifier.testTag("add_score_btn")
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("ثبت نمره", fontSize = 12.sp)
+                }
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                "هر پنجشنبه نمره آزمون را ثبت کن — نمودار پیشرفت هفته ۱ تا ۳۰",
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            if (scores.isEmpty()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    "هنوز نمره‌ای ثبت نشده. با دکمه «ثبت نمره» شروع کن.",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.outline
+                )
+            } else {
+                Spacer(modifier = Modifier.height(12.dp))
+                ScoreLineChart(scores = scores)
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text("آخرین نمره", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("${scores.last().scorePercent}٪", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = PrimaryIndigo)
+                    }
+                    Column {
+                        Text("بهترین", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("${scores.maxOf { it.scorePercent }}٪", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = SuccessGreen)
+                    }
+                    Column {
+                        Text("تعداد آزمون", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("${scores.size}", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = AccentGold)
+                    }
+                    if (scores.size >= 2) {
+                        val diff = scores.last().scorePercent - scores.first().scorePercent
+                        Column {
+                            Text("تغییر", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                (if (diff >= 0) "+$diff" else "$diff") + "٪",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                color = if (diff >= 0) SuccessGreen else MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("برای حذف، روی هر نمره بزنید:", fontSize = 10.sp, color = MaterialTheme.colorScheme.outline)
+                Spacer(modifier = Modifier.height(4.dp))
+                scores.takeLast(6).reversed().forEach { s ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("هفته ${s.weekNumber} • ${s.examTitle}", fontSize = 11.sp)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("${s.scorePercent}٪", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryIndigo)
+                            IconButton(onClick = { onDelete(s.id) }) {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = "حذف",
+                                    tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ScoreLineChart(scores: List<WeeklyScoreEntity>) {
+    val lineColor = PrimaryIndigo
+    val pointColor = AccentGold
+    val gridColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+    val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+
+    Canvas(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(180.dp)
+            .padding(4.dp)
+    ) {
+        val w = size.width
+        val h = size.height
+        val padLeft = 30f
+        val padBottom = 20f
+        val plotW = w - padLeft
+        val plotH = h - padBottom
+
+        for (i in 0..4) {
+            val y = plotH - (plotH * i / 4f)
+            drawLine(
+                color = gridColor,
+                start = Offset(padLeft, y),
+                end = Offset(w, y),
+                strokeWidth = 1f
+            )
+        }
+
+        if (scores.isEmpty()) return@Canvas
+
+        val count = scores.size
+        val stepX = if (count > 1) plotW / (count - 1).toFloat() else plotW / 2f
+
+        val points = scores.mapIndexed { i, s ->
+            val x = if (count > 1) padLeft + i * stepX else padLeft + plotW / 2f
+            val y = plotH - (plotH * (s.scorePercent.coerceIn(0, 100) / 100f))
+            Offset(x, y)
+        }
+
+        val path = Path().apply {
+            points.forEachIndexed { i, p ->
+                if (i == 0) moveTo(p.x, p.y) else lineTo(p.x, p.y)
+            }
+        }
+        drawPath(path, color = lineColor, style = Stroke(width = 4f))
+
+        points.forEach { p ->
+            drawCircle(color = pointColor, radius = 7f, center = p)
+            drawCircle(color = lineColor, radius = 3f, center = p)
+        }
+
+        val paint = android.graphics.Paint().apply {
+            color = labelColor.toArgb()
+            textSize = 22f
+            isAntiAlias = true
+        }
+        for (i in 0..4) {
+            val y = plotH - (plotH * i / 4f)
+            drawContext.canvas.nativeCanvas.drawText(
+                "${i * 25}",
+                2f,
+                y + 8f,
+                paint
+            )
+        }
     }
 }
