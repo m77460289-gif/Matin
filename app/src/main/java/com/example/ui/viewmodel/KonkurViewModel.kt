@@ -31,6 +31,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
@@ -227,6 +228,35 @@ class KonkurViewModel(application: Application) : AndroidViewModel(application) 
     fun deleteWeeklyScore(id: Long) {
         viewModelScope.launch { repository.deleteWeeklyScore(id) }
     }
+
+    // Streak — consecutive days with at least one study log
+    val studyStreak: StateFlow<Int> = allLogs.map { logs ->
+        if (logs.isEmpty()) 0 else {
+            val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            val days = logs.map { sdf.format(Date(it.timestamp)) }.toSet()
+            var streak = 0
+            val cal = java.util.Calendar.getInstance()
+            while (true) {
+                val key = sdf.format(cal.time)
+                if (days.contains(key)) {
+                    streak++
+                    cal.add(java.util.Calendar.DAY_OF_YEAR, -1)
+                } else {
+                    // Allow today to be missing but keep streak from yesterday
+                    if (streak == 0) {
+                        cal.add(java.util.Calendar.DAY_OF_YEAR, -1)
+                        val yesterdayKey = sdf.format(cal.time)
+                        if (days.contains(yesterdayKey)) {
+                            cal.add(java.util.Calendar.DAY_OF_YEAR, -1)
+                            continue
+                        }
+                    }
+                    break
+                }
+            }
+            streak
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
     // Timer State
     private val _timerState = MutableStateFlow(TimerUiState())

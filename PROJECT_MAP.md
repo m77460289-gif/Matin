@@ -134,6 +134,16 @@
 | `TodayChip` | چیپ کوچک نمایش هر آیتم برنامه امروز |
 | دکمه «شروع» | مستقیم `onNavigateToTimer()` را صدا می‌زند |
 
+#### یادآور روزانه + استریک
+| فایل | نقش |
+|---|---|
+| `reminder/ReminderScheduler.kt` | زمان‌بندی روزانه ۱۷:۰۰ با `AlarmManager` |
+| `reminder/ReminderReceiver.kt` | ساخت اعلان «۲ ساعت مطالعه امروز شروع شود؟» |
+| `reminder/BootReceiver.kt` | باززمان‌بندی پس از ری‌استارت |
+| `KonkurViewModel.studyStreak` | استریک از `study_logs` (روزهای پیوسته) |
+| `DashboardScreen` Streak Card | کارت 🔥 نمایش استریک |
+| `AnalyticsAndNotesScreen` | سوییچ فعال/غیرفعال یادآور |
+
 #### تم
 | فایل | نقش |
 |---|---|

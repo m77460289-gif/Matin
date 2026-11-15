@@ -77,6 +77,9 @@ fun AnalyticsAndNotesScreen(viewModel: KonkurViewModel) {
 
     var showAddNoteDialog by remember { mutableStateOf(false) }
     var showAddScoreDialog by remember { mutableStateOf(false) }
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val prefs = remember { ctx.getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE) }
+    var reminderOn by remember { mutableStateOf(prefs.getBoolean("daily_reminder_enabled", true)) }
     val weeklyScores by viewModel.allWeeklyScores.collectAsStateWithLifecycle()
 
     val studiedCount = allProgress.count { it.isStudied }
@@ -172,6 +175,44 @@ fun AnalyticsAndNotesScreen(viewModel: KonkurViewModel) {
                             )
                         }
                     }
+                }
+            }
+        }
+
+        // Daily Reminder Setting
+        item {
+            Card(
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("🔔 یادآور روزانه ساعت ۱۷:۰۰", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Text(
+                            if (reminderOn) "«۲ ساعت مطالعه امروز شروع شود؟» — فعال" else "غیرفعال",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    androidx.compose.material3.Switch(
+                        checked = reminderOn,
+                        onCheckedChange = { enabled ->
+                            reminderOn = enabled
+                            prefs.edit().putBoolean("daily_reminder_enabled", enabled).apply()
+                            if (enabled) {
+                                com.example.reminder.ReminderScheduler.scheduleDaily(ctx)
+                            } else {
+                                com.example.reminder.ReminderScheduler.cancel(ctx)
+                            }
+                        }
+                    )
                 }
             }
         }

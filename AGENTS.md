@@ -116,6 +116,15 @@ app/src/main/java/com/example/
 - دکمه «شروع X دقیقه‌ای» → مستقیم تایمر را باز می‌کند
 - هدف: حذف سردرگمی «از کجا شروع کنم؟»
 
+## 🔔 یادآور و استریک
+
+- `reminder/ReminderScheduler.kt` — زمان‌بندی روزانه ساعت ۱۷:۰۰ با `AlarmManager`
+- `reminder/ReminderReceiver.kt` — اعلان «۲ ساعت مطالعه امروز شروع شود؟»
+- `reminder/BootReceiver.kt` — باززمان‌بندی بعد از ری‌استارت
+- `KonkurViewModel.studyStreak` — استریک از `study_logs` محاسبه می‌شود
+- کارت استریک در `DashboardScreen` — «🔥 X روز پیوسته مطالعه کردی»
+- سوییچ فعال/غیرفعال در `AnalyticsAndNotesScreen` + `SharedPreferences` (`app_prefs` / `daily_reminder_enabled`)
+
 ## ⏱️ آزمون شبیه‌ساز (۲۵ سوال / ۳۰ دقیقه)
 
 - تب `nav_simulator` (`QuizSimulatorScreen`)

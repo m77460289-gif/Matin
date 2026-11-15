@@ -81,6 +81,7 @@ fun DashboardScreen(
     val slotStatuses by viewModel.currentDaySlotStatuses.collectAsStateWithLifecycle()
     val allProgress by viewModel.allProgress.collectAsStateWithLifecycle()
     val dueLeitner by viewModel.dueLeitnerCards.collectAsStateWithLifecycle()
+    val studyStreak by viewModel.studyStreak.collectAsStateWithLifecycle()
 
     val currentDayIndex by viewModel.selectedDayIndex.collectAsStateWithLifecycle()
     val todayPlan = ComputerCurriculumData.weeklyPlan.getOrElse(currentDayIndex) { ComputerCurriculumData.weeklyPlan[0] }
@@ -249,6 +250,41 @@ fun DashboardScreen(
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text("مرور", fontSize = 13.sp)
                             }
+                        }
+                    }
+                }
+            }
+        }
+
+        // STREAK CARD
+        if (studyStreak > 0) {
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                        .testTag("streak_card"),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = AccentGold.copy(alpha = 0.15f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("🔥", fontSize = 26.sp)
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "$studyStreak روز پیوسته مطالعه کردی",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp,
+                                color = AccentGold
+                            )
+                            Text(
+                                text = if (studyStreak >= 7) "عالیه! همین‌طوری ادامه بده 🔥" else "فقط ${7 - studyStreak} روز تا استریک طلایی ۷ روزه!",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
