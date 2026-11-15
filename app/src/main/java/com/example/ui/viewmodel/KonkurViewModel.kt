@@ -231,12 +231,12 @@ class KonkurViewModel(application: Application) : AndroidViewModel(application) 
 
     // Backup / restore
     suspend fun exportBackupJson(): String {
-        val db = AppDatabase.getDatabase(getApplication())
+        val db = AppDatabase.getDatabase(getApplication<Application>())
         return com.example.data.backup.BackupManager.exportToJson(db)
     }
 
     suspend fun importBackupJson(json: String): com.example.data.backup.BackupManager.ImportResult {
-        val db = AppDatabase.getDatabase(getApplication())
+        val db = AppDatabase.getDatabase(getApplication<Application>())
         return com.example.data.backup.BackupManager.importFromJson(db, json)
     }
 
