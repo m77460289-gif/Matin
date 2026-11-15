@@ -29,6 +29,8 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -78,6 +80,7 @@ fun DashboardScreen(
     val totalMinutes by viewModel.totalMinutes.collectAsStateWithLifecycle()
     val slotStatuses by viewModel.currentDaySlotStatuses.collectAsStateWithLifecycle()
     val allProgress by viewModel.allProgress.collectAsStateWithLifecycle()
+    val dueLeitner by viewModel.dueLeitnerCards.collectAsStateWithLifecycle()
 
     val currentDayIndex by viewModel.selectedDayIndex.collectAsStateWithLifecycle()
     val todayPlan = ComputerCurriculumData.weeklyPlan.getOrElse(currentDayIndex) { ComputerCurriculumData.weeklyPlan[0] }
@@ -149,6 +152,105 @@ fun DashboardScreen(
                         color = Color(0xFFE2E8F0),
                         fontSize = 13.sp
                     )
+                }
+            }
+        }
+
+        // TODAY CARD — "امروز چه کاری باید بکنم؟"
+        item {
+            val nextSlot = todayPlan.slots.firstOrNull { slot ->
+                slot.category != "استراحت" && slotStatuses.none { it.slotId == slot.id && it.isCompleted }
+            } ?: todayPlan.slots.firstOrNull { it.category != "استراحت" }
+
+            val poodmanLabel = nextSlot?.title ?: "یک پودمان تخصصی"
+            val durationMin = nextSlot?.durationMinutes ?: 45
+            val dueCount = dueLeitner.size
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .testTag("today_card"),
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = PrimaryIndigo.copy(alpha = 0.08f)),
+                border = CardDefaults.outlinedCardBorder()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.AutoAwesome,
+                                contentDescription = null,
+                                tint = AccentGold,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("امروز چه کاری باید بکنم؟", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = PrimaryIndigo)
+                        }
+                        Surface(color = AccentGold.copy(alpha = 0.2f), shape = RoundedCornerShape(6.dp)) {
+                            Text("امروز", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = AccentGold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        TodayChip(
+                            icon = Icons.Default.Book,
+                            label = poodmanLabel,
+                            color = PrimaryIndigo,
+                            modifier = Modifier.weight(1f)
+                        )
+                        TodayChip(
+                            icon = Icons.Default.Refresh,
+                            label = if (dueCount > 0) "$dueCount مرور لایتنر" else "مرور لایتنر — خالی",
+                            color = SecondaryTeal,
+                            modifier = Modifier.weight(1f)
+                        )
+                        TodayChip(
+                            icon = Icons.Default.CheckCircle,
+                            label = "۵ تست",
+                            color = SuccessGreen,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = { onNavigateToTimer(durationMin, "$poodmanLabel + ۵ تست + ${if (dueCount > 0) "$dueCount مرور لایتنر" else "مرور"}") },
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("today_start_btn"),
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryIndigo),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("شروع $durationMin دقیقه‌ای", fontSize = 13.sp)
+                        }
+                        if (dueCount > 0) {
+                            Button(
+                                onClick = { viewModel.selectTab(7) },
+                                colors = ButtonDefaults.buttonColors(containerColor = SecondaryTeal),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("مرور", fontSize = 13.sp)
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -514,6 +616,29 @@ fun DashboardScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun TodayChip(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(10.dp),
+        color = color.copy(alpha = 0.12f)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(14.dp))
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(label, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = color, maxLines = 1)
         }
     }
 }
