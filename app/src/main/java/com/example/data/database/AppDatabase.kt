@@ -6,6 +6,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.example.data.model.CheckInEntity
 import com.example.data.model.DailySlotStatusEntity
+import com.example.data.model.LeitnerCardEntity
 import com.example.data.model.PoodmanProgressEntity
 import com.example.data.model.StudyLogEntity
 import com.example.data.model.StudyNoteEntity
@@ -16,9 +17,10 @@ import com.example.data.model.StudyNoteEntity
         PoodmanProgressEntity::class,
         StudyNoteEntity::class,
         DailySlotStatusEntity::class,
-        CheckInEntity::class
+        CheckInEntity::class,
+        LeitnerCardEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

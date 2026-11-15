@@ -6,6 +6,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.example.data.model.CheckInEntity
 import com.example.data.model.DailySlotStatusEntity
+import com.example.data.model.LeitnerCardEntity
 import com.example.data.model.PoodmanProgressEntity
 import com.example.data.model.StudyLogEntity
 import com.example.data.model.StudyNoteEntity
@@ -63,4 +64,20 @@ interface StudyDao {
 
     @Query("DELETE FROM weekly_checkins WHERE id = :id")
     suspend fun deleteCheckIn(id: Long)
+
+    // Leitner Spaced-Repetition
+    @Query("SELECT * FROM leitner_cards ORDER BY nextReviewAt ASC")
+    fun getAllLeitnerCards(): Flow<List<LeitnerCardEntity>>
+
+    @Query("SELECT * FROM leitner_cards WHERE isMastered = 0 AND nextReviewAt <= :upToTimestamp ORDER BY nextReviewAt ASC")
+    fun getDueLeitnerCards(upToTimestamp: Long): Flow<List<LeitnerCardEntity>>
+
+    @Query("SELECT * FROM leitner_cards WHERE bookId = :bookId AND poodmanIndex = :poodmanIndex LIMIT 1")
+    suspend fun getLeitnerCard(bookId: String, poodmanIndex: Int): LeitnerCardEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertLeitnerCard(card: LeitnerCardEntity)
+
+    @Query("DELETE FROM leitner_cards WHERE bookId = :bookId AND poodmanIndex = :poodmanIndex")
+    suspend fun deleteLeitnerCard(bookId: String, poodmanIndex: Int)
 }

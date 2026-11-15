@@ -56,6 +56,24 @@ data class DailySlotStatusEntity(
 )
 
 /**
+ * Leitner spaced-repetition card — auto-enqueued when a poodman is marked as studied.
+ * Box levels 1..5 correspond to review intervals: 1, 3, 7, 14, 30 days.
+ * When boxLevel reaches 6, the card is considered mastered.
+ */
+@Entity(tableName = "leitner_cards", primaryKeys = ["bookId", "poodmanIndex"])
+data class LeitnerCardEntity(
+    val bookId: String,
+    val poodmanIndex: Int,
+    val bookTitle: String,
+    val poodmanTitle: String,
+    val boxLevel: Int = 1,
+    val nextReviewAt: Long,
+    val lastReviewedAt: Long = 0L,
+    val reviewCount: Int = 0,
+    val isMastered: Boolean = false
+)
+
+/**
  * Weekly check-in report (Sunday / Thursday) from the students' progress
  */
 @Entity(tableName = "weekly_checkins")

@@ -93,6 +93,13 @@
 | `ui/screens/AnnualPlanScreen.kt` | نمایش فازها + دیالوگ ثبت چک‌پوینت هفتگی + لیست چک‌پوینت‌های ذخیره‌شده |
 | `CheckInEntity` (در `Models.kt`) | جدول `weekly_checkins` برای ذخیره چک‌پوینت‌ها در Room |
 
+#### جعبه لایتنر (مرور فاصله‌دار)
+| فایل | نقش |
+|---|---|
+| `LeitnerCardEntity` (در `Models.kt`) | جدول `leitner_cards` — هر پودمان با `boxLevel` و `nextReviewAt` |
+| `ui/screens/LeitnerScreen.kt` | تب «مرور امروز»: کارت‌های سررسید، دکمه «یادم بود / فراموش کردم»، لیست کل کارت‌ها |
+| `KonkurViewModel.reviewLeitnerCard()` | پاسخ درست → جعبه بعدی؛ پاسخ غلط → برگشت به جعبه ۱ |
+
 #### تم
 | فایل | نقش |
 |---|---|

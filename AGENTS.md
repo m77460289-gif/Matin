@@ -103,6 +103,7 @@ app/src/main/java/com/example/
 | `study_notes` | auto id | دفترچه نکات |
 | `daily_slot_status` | (dateKey, slotId) | تیک برنامه روز |
 | `weekly_checkins` | auto id | گزارش یکشنبه/پنجشنبه |
+| `leitner_cards` | (bookId, poodmanIndex) | جعبه لایتنر — مرور فاصله‌دار ۱/۳/۷/۱۴/۳۰ روز |
 
 **⚠️ نکته:** `fallbackToDestructiveMigration()` فعال است — هر بار schema عوض شد `version` را در `AppDatabase.kt` یکی زیاد کن.
 
@@ -143,6 +144,18 @@ git push origin v1.x.0
   - `RELEASE_KEY_ALIAS`
 
 **⚠️ فایل‌های `.jks` و `release-signing.properties` را هرگز push نکن.**
+
+---
+
+## 🔁 جعبه لایتنر (Leitner Spaced-Repetition) — قلب نتیجه کنکور
+
+- **قاعده:** هر پودمان که «مطالعه» تیک بخورد، **خودکار** وارد `leitner_cards` (جعبه ۱) می‌شود.
+- **فواصل مرور:** ۱ روز → ۳ روز → ۷ روز → ۱۴ روز → ۳۰ روز → تسلط ✅
+- **UI:** تب `مرور امروز` (`LeitnerScreen`) — فقط کارت‌های سررسید امروز یا گذشته، هر بار حدود ۱۰ دقیقه.
+- **پاسخ درست** → `boxLevel++` و تاریخ مرور بعدی جلو می‌رود.
+- **پاسخ غلط** → برگشت به جعبه ۱ (مرور فردا).
+- **تسلط:** بعد از جعبه ۵ → `isMastered = true` و `nextReviewAt = Long.MAX_VALUE`.
+- **کد محوری:** `KonkurViewModel.reviewLeitnerCard()`, `enqueueLeitnerIfNeeded()`.
 
 ---
 

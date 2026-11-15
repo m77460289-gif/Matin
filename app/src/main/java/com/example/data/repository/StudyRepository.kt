@@ -3,6 +3,7 @@ package com.example.data.repository
 import com.example.data.database.StudyDao
 import com.example.data.model.CheckInEntity
 import com.example.data.model.DailySlotStatusEntity
+import com.example.data.model.LeitnerCardEntity
 import com.example.data.model.PoodmanProgressEntity
 import com.example.data.model.StudyLogEntity
 import com.example.data.model.StudyNoteEntity
@@ -54,6 +55,19 @@ class StudyRepository(private val dao: StudyDao) {
     suspend fun deleteNote(id: Long) {
         dao.deleteNote(id)
     }
+
+    val allLeitnerCards: Flow<List<LeitnerCardEntity>> = dao.getAllLeitnerCards()
+
+    fun getDueLeitnerCards(upToTimestamp: Long): Flow<List<LeitnerCardEntity>> =
+        dao.getDueLeitnerCards(upToTimestamp)
+
+    suspend fun getLeitnerCard(bookId: String, poodmanIndex: Int): LeitnerCardEntity? =
+        dao.getLeitnerCard(bookId, poodmanIndex)
+
+    suspend fun upsertLeitnerCard(card: LeitnerCardEntity) = dao.upsertLeitnerCard(card)
+
+    suspend fun deleteLeitnerCard(bookId: String, poodmanIndex: Int) =
+        dao.deleteLeitnerCard(bookId, poodmanIndex)
 
     val allCheckIns: Flow<List<CheckInEntity>> = dao.getAllCheckIns()
 

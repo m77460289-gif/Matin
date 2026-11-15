@@ -18,6 +18,7 @@ import com.example.data.database.AppDatabase
 import com.example.data.model.CheckInEntity
 import com.example.data.model.DailySlotStatusEntity
 import com.example.data.model.GradeLevel
+import com.example.data.model.LeitnerCardEntity
 import com.example.data.model.PoodmanProgressEntity
 import com.example.data.model.StudyLogEntity
 import com.example.data.model.StudyNoteEntity
@@ -28,6 +29,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -102,6 +104,97 @@ class KonkurViewModel(application: Application) : AndroidViewModel(application) 
 
     val allCheckIns: StateFlow<List<CheckInEntity>> = repository.allCheckIns
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // Leitner Spaced-Repetition
+    private val _nowTick = MutableStateFlow(System.currentTimeMillis())
+    val nowTick: StateFlow<Long> = _nowTick.asStateFlow()
+
+    fun refreshNow() { _nowTick.value = System.currentTimeMillis() }
+
+    val dueLeitnerCards: StateFlow<List<LeitnerCardEntity>> = _nowTick
+        .flatMapLatest { now -> repository.getDueLeitnerCards(now + 24L * 60 * 60 * 1000) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val allLeitnerCards: StateFlow<List<LeitnerCardEntity>> = repository.allLeitnerCards
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /** Intervals in days for box levels 1..5; box 6+ = mastered. */
+    private val leitnerIntervalsDays = intArrayOf(1, 3, 7, 14, 30)
+    private val DAY_MS = 24L * 60 * 60 * 1000
+
+    /**
+     * Called when user marks a poodman as "studied" for the first time.
+     * Enqueues it into the Leitner box at level 1 (review after 1 day).
+     */
+    private suspend fun enqueueLeitnerIfNeeded(bookId: String, poodmanIndex: Int) {
+        val existing = repository.getLeitnerCard(bookId, poodmanIndex)
+        if (existing != null) return
+        val book = ComputerCurriculumData.books.find { it.id == bookId } ?: return
+        val poodman = book.poodmans.getOrNull(poodmanIndex - 1) ?: return
+        repository.upsertLeitnerCard(
+            LeitnerCardEntity(
+                bookId = bookId,
+                poodmanIndex = poodmanIndex,
+                bookTitle = book.title,
+                poodmanTitle = poodman.title,
+                boxLevel = 1,
+                nextReviewAt = System.currentTimeMillis() + leitnerIntervalsDays[0] * DAY_MS,
+                reviewCount = 0,
+                isMastered = false
+            )
+        )
+    }
+
+    /**
+     * Review result: correct = advance box level; incorrect = reset to box 1.
+     */
+    fun reviewLeitnerCard(card: LeitnerCardEntity, remembered: Boolean) {
+        viewModelScope.launch {
+            val now = System.currentTimeMillis()
+            if (!remembered) {
+                repository.upsertLeitnerCard(
+                    card.copy(
+                        boxLevel = 1,
+                        nextReviewAt = now + leitnerIntervalsDays[0] * DAY_MS,
+                        lastReviewedAt = now,
+                        reviewCount = card.reviewCount + 1,
+                        isMastered = false
+                    )
+                )
+            } else {
+                val nextBox = card.boxLevel + 1
+                if (nextBox > leitnerIntervalsDays.size) {
+                    repository.upsertLeitnerCard(
+                        card.copy(
+                            boxLevel = leitnerIntervalsDays.size + 1,
+                            nextReviewAt = Long.MAX_VALUE,
+                            lastReviewedAt = now,
+                            reviewCount = card.reviewCount + 1,
+                            isMastered = true
+                        )
+                    )
+                } else {
+                    repository.upsertLeitnerCard(
+                        card.copy(
+                            boxLevel = nextBox,
+                            nextReviewAt = now + leitnerIntervalsDays[nextBox - 1] * DAY_MS,
+                            lastReviewedAt = now,
+                            reviewCount = card.reviewCount + 1,
+                            isMastered = false
+                        )
+                    )
+                }
+            }
+            refreshNow()
+        }
+    }
+
+    fun resetLeitnerCard(card: LeitnerCardEntity) {
+        viewModelScope.launch {
+            repository.deleteLeitnerCard(card.bookId, card.poodmanIndex)
+            refreshNow()
+        }
+    }
 
     // Timer State
     private val _timerState = MutableStateFlow(TimerUiState())
@@ -251,6 +344,10 @@ class KonkurViewModel(application: Application) : AndroidViewModel(application) 
                 lastUpdated = System.currentTimeMillis()
             )
             repository.savePoodmanProgress(updated)
+            // Auto-enqueue into Leitner box when a poodman is marked as studied
+            if (updated.isStudied) {
+                enqueueLeitnerIfNeeded(bookId, poodmanIndex)
+            }
         }
     }
 
