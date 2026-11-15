@@ -100,6 +100,13 @@
 | `ui/screens/LeitnerScreen.kt` | تب «مرور امروز»: کارت‌های سررسید، دکمه «یادم بود / فراموش کردم»، لیست کل کارت‌ها |
 | `KonkurViewModel.reviewLeitnerCard()` | پاسخ درست → جعبه بعدی؛ پاسخ غلط → برگشت به جعبه ۱ |
 
+#### دفترچه اشتباهات (Error Notebook)
+| فایل | نقش |
+|---|---|
+| `WrongAnswerEntity` (در `Models.kt`) | جدول `wrong_answers` — سوال غلط با `timesWrong` و `lastWrongAt` |
+| `QuizScreen` (بازنویسی) | ذخیره خودکار سوال غلط + دکمه «آزمون مجدد از غلط‌ها» |
+| `KonkurViewModel.recordWrongAnswer()` | افزایش شمارنده غلط + reset `isMastered` |
+
 #### تم
 | فایل | نقش |
 |---|---|

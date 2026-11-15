@@ -228,7 +228,7 @@ fun ScreenContent(
         )
         2 -> BooksAndChangesScreen(viewModel = viewModel)
         3 -> TimerScreen(viewModel = viewModel)
-        4 -> QuizScreen()
+        4 -> QuizScreen(viewModel = viewModel)
         5 -> AnalyticsAndNotesScreen(viewModel = viewModel)
         6 -> com.example.ui.screens.AnnualPlanScreen(viewModel = viewModel)
         7 -> LeitnerScreen(viewModel = viewModel)

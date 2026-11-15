@@ -4,6 +4,7 @@ import com.example.data.database.StudyDao
 import com.example.data.model.CheckInEntity
 import com.example.data.model.DailySlotStatusEntity
 import com.example.data.model.LeitnerCardEntity
+import com.example.data.model.WrongAnswerEntity
 import com.example.data.model.PoodmanProgressEntity
 import com.example.data.model.StudyLogEntity
 import com.example.data.model.StudyNoteEntity
@@ -68,6 +69,21 @@ class StudyRepository(private val dao: StudyDao) {
 
     suspend fun deleteLeitnerCard(bookId: String, poodmanIndex: Int) =
         dao.deleteLeitnerCard(bookId, poodmanIndex)
+
+    val allWrongAnswers: Flow<List<WrongAnswerEntity>> = dao.getAllWrongAnswers()
+
+    suspend fun recordWrongAnswer(questionId: Int) {
+        val existing = dao.getWrongAnswer(questionId)
+        if (existing != null) {
+            dao.upsertWrongAnswer(existing.copy(timesWrong = existing.timesWrong + 1, lastWrongAt = System.currentTimeMillis(), isMastered = false))
+        } else {
+            dao.upsertWrongAnswer(WrongAnswerEntity(questionId = questionId))
+        }
+    }
+
+    suspend fun removeWrongAnswer(questionId: Int) = dao.deleteWrongAnswer(questionId)
+
+    suspend fun clearWrongAnswers() = dao.clearWrongAnswers()
 
     val allCheckIns: Flow<List<CheckInEntity>> = dao.getAllCheckIns()
 

@@ -104,6 +104,7 @@ app/src/main/java/com/example/
 | `daily_slot_status` | (dateKey, slotId) | تیک برنامه روز |
 | `weekly_checkins` | auto id | گزارش یکشنبه/پنجشنبه |
 | `leitner_cards` | (bookId, poodmanIndex) | جعبه لایتنر — مرور فاصله‌دار ۱/۳/۷/۱۴/۳۰ روز |
+| `wrong_answers` | questionId | دفترچه اشتباهات — سوالات غلط آزمونک |
 
 **⚠️ نکته:** `fallbackToDestructiveMigration()` فعال است — هر بار schema عوض شد `version` را در `AppDatabase.kt` یکی زیاد کن.
 

@@ -7,6 +7,7 @@ import androidx.room.Query
 import com.example.data.model.CheckInEntity
 import com.example.data.model.DailySlotStatusEntity
 import com.example.data.model.LeitnerCardEntity
+import com.example.data.model.WrongAnswerEntity
 import com.example.data.model.PoodmanProgressEntity
 import com.example.data.model.StudyLogEntity
 import com.example.data.model.StudyNoteEntity
@@ -80,4 +81,20 @@ interface StudyDao {
 
     @Query("DELETE FROM leitner_cards WHERE bookId = :bookId AND poodmanIndex = :poodmanIndex")
     suspend fun deleteLeitnerCard(bookId: String, poodmanIndex: Int)
+
+    // Wrong Answers Notebook
+    @Query("SELECT * FROM wrong_answers ORDER BY lastWrongAt DESC")
+    fun getAllWrongAnswers(): Flow<List<WrongAnswerEntity>>
+
+    @Query("SELECT * FROM wrong_answers WHERE questionId = :id LIMIT 1")
+    suspend fun getWrongAnswer(id: Int): WrongAnswerEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertWrongAnswer(entity: WrongAnswerEntity)
+
+    @Query("DELETE FROM wrong_answers WHERE questionId = :id")
+    suspend fun deleteWrongAnswer(id: Int)
+
+    @Query("DELETE FROM wrong_answers")
+    suspend fun clearWrongAnswers()
 }

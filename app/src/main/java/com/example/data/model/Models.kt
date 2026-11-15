@@ -86,6 +86,18 @@ data class CheckInEntity(
     val createdAt: Long = System.currentTimeMillis()
 )
 
+/**
+ * Wrong-answer notebook entry. Auto-saved whenever the user answers a quiz question incorrectly.
+ * The `questionId` refers to `QuizQuestion.id` in `ComputerCurriculumData.sampleQuestions`.
+ */
+@Entity(tableName = "wrong_answers")
+data class WrongAnswerEntity(
+    @PrimaryKey val questionId: Int,
+    val timesWrong: Int = 1,
+    val lastWrongAt: Long = System.currentTimeMillis(),
+    val isMastered: Boolean = false
+)
+
 // Domain Data Models
 enum class GradeLevel(val titleFa: String) {
     GRADE_10("پایه دهم"),

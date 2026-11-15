@@ -37,6 +37,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
@@ -50,24 +51,69 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.curriculum.ComputerCurriculumData
+import com.example.data.model.QuizQuestion
 import com.example.ui.theme.AccentGold
 import com.example.ui.theme.PrimaryIndigo
 import com.example.ui.theme.SecondaryTeal
 import com.example.ui.theme.SuccessGreen
+import com.example.ui.viewmodel.KonkurViewModel
 
 @Composable
-fun QuizScreen() {
-    val questions = ComputerCurriculumData.sampleQuestions
-    var currentIndex by remember { mutableStateOf(0) }
-    val userAnswers = remember { mutableStateMapOf<Int, Int>() }
+fun QuizScreen(viewModel: KonkurViewModel) {
+    val allQuestions = ComputerCurriculumData.sampleQuestions
+    val wrongAnswers by viewModel.allWrongAnswers.collectAsStateWithLifecycle()
 
-    val currentQuestion = questions.getOrElse(currentIndex) { questions[0] }
+    var retakeMode by remember { mutableStateOf(false) }
+
+    val wrongIds = wrongAnswers.map { it.questionId }.toSet()
+    val questions: List<QuizQuestion> = if (retakeMode) {
+        allQuestions.filter { it.id in wrongIds }
+    } else {
+        allQuestions
+    }
+
+    var currentIndex by remember(retakeMode, questions.size) { mutableStateOf(0) }
+    val userAnswers = remember(retakeMode) { mutableStateMapOf<Int, Int>() }
+
+    if (questions.isEmpty()) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .testTag("quiz_screen"),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            item {
+                OutlinedCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) {
+                    Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Default.Check, contentDescription = null, tint = SuccessGreen, modifier = Modifier.size(40.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("دفترچه اشتباهات خالی است 🎉", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text("هیچ سوال غلطی ثبت نشده. ادامه بده!", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+            item {
+                Button(
+                    onClick = { retakeMode = false },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryIndigo),
+                    shape = RoundedCornerShape(12.dp)
+                ) { Text("بازگشت به آزمونک اصلی") }
+            }
+        }
+        return
+    }
+
+    val safeIndex = currentIndex.coerceIn(0, questions.size - 1)
+    val currentQuestion = questions[safeIndex]
     val selectedOptionIndex = userAnswers[currentQuestion.id]
     val isAnswered = selectedOptionIndex != null
 
     val totalScore = userAnswers.count { (qId, ans) ->
-        val q = questions.find { it.id == qId }
+        val q = allQuestions.find { it.id == qId }
         q?.correctIndex == ans
     }
 
@@ -78,7 +124,6 @@ fun QuizScreen() {
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // Header
         item {
             Column {
                 Row(
@@ -95,16 +140,12 @@ fun QuizScreen() {
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "آزمونک پارت ۲۵ دقیقه‌ای تست",
+                            text = if (retakeMode) "آزمون مجدد از غلط‌ها" else "آزمونک پارت ۲۵ دقیقه‌ای تست",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
-
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = SecondaryTeal.copy(alpha = 0.15f)
-                    ) {
+                    Surface(shape = RoundedCornerShape(8.dp), color = SecondaryTeal.copy(alpha = 0.15f)) {
                         Text(
                             text = "امتیاز: $totalScore از ${questions.size}",
                             color = SecondaryTeal,
@@ -115,14 +156,43 @@ fun QuizScreen() {
                     }
                 }
                 Text(
-                    text = "تست‌های احتمالی و پرتکرار کنکور فنی‌حرفه‌ای با تحلیل کامل",
+                    text = if (retakeMode) "فقط سوالاتی که قبلاً غلط زده‌اید — تا اشتباه تکرار نشود." else "تست‌های احتمالی و پرتکرار کنکور فنی‌حرفه‌ای با تحلیل کامل",
                     fontSize = 13.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
 
-        // Question Card
+        if (!retakeMode && wrongAnswers.isNotEmpty()) {
+            item {
+                Card(
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.08f))
+                ) {
+                    Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("دفترچه اشتباهات: ${wrongAnswers.size} سوال غلط", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.error)
+                            Text("یک اشتباه را دو بار تکرار نکن — همین حالا مرور کن.", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Button(
+                            onClick = { retakeMode = true },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.testTag("retake_wrongs_btn")
+                        ) { Text("آزمون مجدد", fontSize = 12.sp) }
+                    }
+                }
+            }
+        }
+
+        if (retakeMode) {
+            item {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = { retakeMode = false }) { Text("بازگشت به آزمون اصلی", fontSize = 12.sp) }
+                }
+            }
+        }
+
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -131,25 +201,20 @@ fun QuizScreen() {
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    // Question Meta
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = PrimaryIndigo.copy(alpha = 0.15f)
-                        ) {
+                        Surface(shape = RoundedCornerShape(6.dp), color = PrimaryIndigo.copy(alpha = 0.15f)) {
                             Text(
-                                text = "تست ${currentIndex + 1} از ${questions.size}",
+                                text = "تست ${safeIndex + 1} از ${questions.size}",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = PrimaryIndigo,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
                             )
                         }
-
                         Text(
                             text = "${currentQuestion.bookTitle} • پودمان ${currentQuestion.poodmanIndex}",
                             fontSize = 11.sp,
@@ -159,8 +224,6 @@ fun QuizScreen() {
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
-
-                    // Question Text
                     Text(
                         text = currentQuestion.questionText,
                         fontSize = 15.sp,
@@ -168,10 +231,8 @@ fun QuizScreen() {
                         lineHeight = 24.sp,
                         color = MaterialTheme.colorScheme.onSurface
                     )
-
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Options
                     currentQuestion.options.forEachIndexed { optIndex, optText ->
                         val isSelected = selectedOptionIndex == optIndex
                         val isCorrectOption = optIndex == currentQuestion.correctIndex
@@ -182,7 +243,6 @@ fun QuizScreen() {
                             isSelected -> MaterialTheme.colorScheme.error.copy(alpha = 0.15f)
                             else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                         }
-
                         val borderColor = when {
                             !isAnswered -> Color.Transparent
                             isCorrectOption -> SuccessGreen
@@ -199,13 +259,16 @@ fun QuizScreen() {
                                 .border(1.dp, borderColor, RoundedCornerShape(12.dp))
                                 .clickable(enabled = !isAnswered) {
                                     userAnswers[currentQuestion.id] = optIndex
+                                    val correct = optIndex == currentQuestion.correctIndex
+                                    if (correct) {
+                                        if (retakeMode) viewModel.removeWrongAnswer(currentQuestion.id)
+                                    } else {
+                                        viewModel.recordWrongAnswer(currentQuestion.id)
+                                    }
                                 }
                                 .testTag("option_${currentQuestion.id}_$optIndex")
                         ) {
-                            Row(
-                                modifier = Modifier.padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
+                            Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Box(
                                     modifier = Modifier
                                         .size(28.dp)
@@ -224,15 +287,9 @@ fun QuizScreen() {
                                     } else if (isAnswered && isSelected) {
                                         Icon(Icons.Default.Close, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                                     } else {
-                                        Text(
-                                            text = "${optIndex + 1}",
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
+                                        Text("${optIndex + 1}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                 }
-
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Text(
                                     text = optText,
@@ -244,42 +301,18 @@ fun QuizScreen() {
                         }
                     }
 
-                    // Explanation Box (Visible once answered)
                     AnimatedVisibility(visible = isAnswered) {
                         Column(modifier = Modifier.padding(top = 16.dp)) {
-                            OutlinedCard(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
+                            OutlinedCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
                                 Column(modifier = Modifier.padding(12.dp)) {
-                                    Text(
-                                        text = "📖 تحلیل تشریحی پاسخ:",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 13.sp,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
+                                    Text("📖 تحلیل تشریحی پاسخ:", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.primary)
                                     Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = currentQuestion.explanation,
-                                        fontSize = 12.sp,
-                                        lineHeight = 19.sp,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
+                                    Text(currentQuestion.explanation, fontSize = 12.sp, lineHeight = 19.sp, color = MaterialTheme.colorScheme.onSurface)
                                     Spacer(modifier = Modifier.height(8.dp))
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(
-                                            imageVector = Icons.Default.AutoAwesome,
-                                            contentDescription = null,
-                                            tint = AccentGold,
-                                            modifier = Modifier.size(16.dp)
-                                        )
+                                        Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = AccentGold, modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            text = "نکته طلایی: ${currentQuestion.goldenRule}",
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = AccentGold
-                                        )
+                                        Text("نکته طلایی: ${currentQuestion.goldenRule}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = AccentGold)
                                     }
                                 }
                             }
@@ -289,17 +322,11 @@ fun QuizScreen() {
             }
         }
 
-        // Navigation Buttons
         item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 OutlinedButton(
-                    onClick = {
-                        if (currentIndex > 0) currentIndex--
-                    },
-                    enabled = currentIndex > 0,
+                    onClick = { if (safeIndex > 0) currentIndex = safeIndex - 1 },
+                    enabled = safeIndex > 0,
                     shape = RoundedCornerShape(10.dp),
                     modifier = Modifier.testTag("prev_quiz_btn")
                 ) {
@@ -307,13 +334,11 @@ fun QuizScreen() {
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("سوال قبلی")
                 }
-
                 Button(
                     onClick = {
-                        if (currentIndex < questions.size - 1) {
-                            currentIndex++
+                        if (safeIndex < questions.size - 1) {
+                            currentIndex = safeIndex + 1
                         } else {
-                            // Reset test
                             userAnswers.clear()
                             currentIndex = 0
                         }
@@ -322,10 +347,10 @@ fun QuizScreen() {
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryIndigo),
                     modifier = Modifier.testTag("next_quiz_btn")
                 ) {
-                    Text(if (currentIndex < questions.size - 1) "سوال بعدی" else "شروع مجدد")
+                    Text(if (safeIndex < questions.size - 1) "سوال بعدی" else "شروع مجدد")
                     Spacer(modifier = Modifier.width(4.dp))
                     Icon(
-                        imageVector = if (currentIndex < questions.size - 1) Icons.Default.NavigateBefore else Icons.Default.Refresh,
+                        imageVector = if (safeIndex < questions.size - 1) Icons.Default.NavigateBefore else Icons.Default.Refresh,
                         contentDescription = null
                     )
                 }

@@ -19,6 +19,7 @@ import com.example.data.model.CheckInEntity
 import com.example.data.model.DailySlotStatusEntity
 import com.example.data.model.GradeLevel
 import com.example.data.model.LeitnerCardEntity
+import com.example.data.model.WrongAnswerEntity
 import com.example.data.model.PoodmanProgressEntity
 import com.example.data.model.StudyLogEntity
 import com.example.data.model.StudyNoteEntity
@@ -196,6 +197,22 @@ class KonkurViewModel(application: Application) : AndroidViewModel(application) 
             repository.deleteLeitnerCard(card.bookId, card.poodmanIndex)
             refreshNow()
         }
+    }
+
+    // Wrong Answers Notebook
+    val allWrongAnswers: StateFlow<List<WrongAnswerEntity>> = repository.allWrongAnswers
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun recordWrongAnswer(questionId: Int) {
+        viewModelScope.launch { repository.recordWrongAnswer(questionId) }
+    }
+
+    fun removeWrongAnswer(questionId: Int) {
+        viewModelScope.launch { repository.removeWrongAnswer(questionId) }
+    }
+
+    fun clearWrongAnswers() {
+        viewModelScope.launch { repository.clearWrongAnswers() }
     }
 
     // Timer State
