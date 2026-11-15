@@ -29,6 +29,9 @@ data class PoodmanProgressEntity(
     val hasVideo: Boolean = false,
     val hasPdf: Boolean = false,
     val hasTests: Boolean = false,
+    val videoUrl: String = "",
+    val pdfPath: String = "",
+    val testUrl: String = "",
     val lastUpdated: Long = System.currentTimeMillis()
 )
 

@@ -107,6 +107,8 @@ app/src/main/java/com/example/
 | `wrong_answers` | questionId | دفترچه اشتباهات — سوالات غلط آزمونک |
 | `weekly_scores` | auto id | نمره آزمون‌های هفتگی (هفته ۱ تا ۳۰) + روند نمودار خطی |
 
+> 💡 `poodman_progress` در v7 شامل `videoUrl`, `pdfPath`, `testUrl` هم هست — لینک واقعی منابع هر پودمان.
+
 ## ⏱️ آزمون شبیه‌ساز (۲۵ سوال / ۳۰ دقیقه)
 
 - تب `nav_simulator` (`QuizSimulatorScreen`)

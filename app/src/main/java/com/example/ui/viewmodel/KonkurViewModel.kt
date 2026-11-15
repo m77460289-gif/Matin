@@ -360,7 +360,10 @@ class KonkurViewModel(application: Application) : AndroidViewModel(application) 
         tested: Boolean? = null,
         hasVideo: Boolean? = null,
         hasPdf: Boolean? = null,
-        hasTests: Boolean? = null
+        hasTests: Boolean? = null,
+        videoUrl: String? = null,
+        pdfPath: String? = null,
+        testUrl: String? = null
     ) {
         viewModelScope.launch {
             val existing = allProgress.value.find { it.bookId == bookId && it.poodmanIndex == poodmanIndex }
@@ -373,6 +376,9 @@ class KonkurViewModel(application: Application) : AndroidViewModel(application) 
                 hasVideo = hasVideo ?: existing?.hasVideo ?: false,
                 hasPdf = hasPdf ?: existing?.hasPdf ?: false,
                 hasTests = hasTests ?: existing?.hasTests ?: false,
+                videoUrl = videoUrl ?: existing?.videoUrl ?: "",
+                pdfPath = pdfPath ?: existing?.pdfPath ?: "",
+                testUrl = testUrl ?: existing?.testUrl ?: "",
                 lastUpdated = System.currentTimeMillis()
             )
             repository.savePoodmanProgress(updated)

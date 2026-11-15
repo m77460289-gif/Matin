@@ -27,6 +27,10 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Rule
 import androidx.compose.material.icons.filled.WarningAmber
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
@@ -39,15 +43,24 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -61,6 +74,16 @@ import com.example.ui.theme.PrimaryIndigo
 import com.example.ui.theme.SecondaryTeal
 import com.example.ui.theme.SuccessGreen
 import com.example.ui.viewmodel.KonkurViewModel
+
+data class EditTarget(
+    val bookId: String,
+    val bookTitle: String,
+    val poodmanIndex: Int,
+    val poodmanTitle: String,
+    val videoUrl: String,
+    val pdfPath: String,
+    val testUrl: String
+)
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
@@ -81,6 +104,20 @@ fun BooksAndChangesScreen(viewModel: KonkurViewModel) {
 
     // Map to keep track of expanded books
     val expandedBooks = remember { mutableStateMapOf<String, Boolean>() }
+
+    val context = LocalContext.current
+
+    // Dialog state for editing resource links
+    var editTarget by remember { mutableStateOf<EditTarget?>(null) }
+
+    fun openUrl(url: String) {
+        if (url.isBlank()) return
+        try {
+            val finalUrl = if (!url.startsWith("http://") && !url.startsWith("https://") && !url.startsWith("file://")) "https://$url" else url
+            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(finalUrl))
+            context.startActivity(intent)
+        } catch (_: Exception) { }
+    }
 
     LazyColumn(
         modifier = Modifier
@@ -413,21 +450,64 @@ fun BooksAndChangesScreen(viewModel: KonkurViewModel) {
                                         )
 
                                         // Resource availability (منابع)
-                                        Text(
-                                            text = "منابع موجود برای این پودمان:",
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = SecondaryTeal
-                                        )
-                                        Spacer(modifier = Modifier.height(2.dp))
+                                        val videoUrl = progress?.videoUrl ?: ""
+                                        val pdfPath = progress?.pdfPath ?: ""
+                                        val testUrl = progress?.testUrl ?: ""
+
                                         Row(
                                             modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceEvenly
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            ResourceChip("فیلم", hasVideo) { viewModel.togglePoodmanStatus(book.id, poodman.index, hasVideo = it) }
-                                            ResourceChip("جزوه", hasPdf) { viewModel.togglePoodmanStatus(book.id, poodman.index, hasPdf = it) }
-                                            ResourceChip("تست", hasTests) { viewModel.togglePoodmanStatus(book.id, poodman.index, hasTests = it) }
+                                            Text(
+                                                text = "منابع این پودمان:",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = SecondaryTeal
+                                            )
+                                            IconButton(
+                                                onClick = {
+                                                    editTarget = EditTarget(book.id, book.title, poodman.index, poodman.title, videoUrl, pdfPath, testUrl)
+                                                },
+                                                modifier = Modifier.testTag("edit_res_${book.id}_${poodman.index}")
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Edit,
+                                                    contentDescription = "ویرایش لینک منابع",
+                                                    tint = PrimaryIndigo,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
                                         }
+                                        Spacer(modifier = Modifier.height(2.dp))
+
+                                        // Video row
+                                        ResourceRow(
+                                            icon = { Icon(Icons.Default.PlayArrow, contentDescription = null, tint = SecondaryTeal, modifier = Modifier.size(16.dp)) },
+                                            label = "فیلم",
+                                            isAvailable = hasVideo,
+                                            onToggle = { viewModel.togglePoodmanStatus(book.id, poodman.index, hasVideo = it) },
+                                            hasLink = videoUrl.isNotBlank(),
+                                            onOpen = { openUrl(videoUrl) }
+                                        )
+                                        // PDF row
+                                        ResourceRow(
+                                            icon = { Icon(Icons.Default.Description, contentDescription = null, tint = AccentGold, modifier = Modifier.size(16.dp)) },
+                                            label = "جزوه",
+                                            isAvailable = hasPdf,
+                                            onToggle = { viewModel.togglePoodmanStatus(book.id, poodman.index, hasPdf = it) },
+                                            hasLink = pdfPath.isNotBlank(),
+                                            onOpen = { openUrl(pdfPath) }
+                                        )
+                                        // Test row
+                                        ResourceRow(
+                                            icon = { Icon(Icons.Default.Link, contentDescription = null, tint = PrimaryIndigo, modifier = Modifier.size(16.dp)) },
+                                            label = "تست",
+                                            isAvailable = hasTests,
+                                            onToggle = { viewModel.togglePoodmanStatus(book.id, poodman.index, hasTests = it) },
+                                            hasLink = testUrl.isNotBlank(),
+                                            onOpen = { openUrl(testUrl) }
+                                        )
                                     }
                                 }
                             }
@@ -435,6 +515,105 @@ fun BooksAndChangesScreen(viewModel: KonkurViewModel) {
                     }
                 }
             }
+        }
+    }
+
+    editTarget?.let { target ->
+        var vUrl by remember(target) { mutableStateOf(target.videoUrl) }
+        var pPath by remember(target) { mutableStateOf(target.pdfPath) }
+        var tUrl by remember(target) { mutableStateOf(target.testUrl) }
+
+        AlertDialog(
+            onDismissRequest = { editTarget = null },
+            title = {
+                Text(
+                    text = "منابع: ${target.bookTitle} — ${target.poodmanTitle}",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = vUrl,
+                        onValueChange = { vUrl = it },
+                        label = { Text("لینک فیلم (YouTube و...) ", fontSize = 12.sp) },
+                        placeholder = { Text("https://youtu.be/...", fontSize = 11.sp) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = pPath,
+                        onValueChange = { pPath = it },
+                        label = { Text("مسیر/لینک جزوه", fontSize = 12.sp) },
+                        placeholder = { Text("file:///sdcard/... یا https://...", fontSize = 11.sp) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = tUrl,
+                        onValueChange = { tUrl = it },
+                        label = { Text("لینک تست", fontSize = 12.sp) },
+                        placeholder = { Text("https://...", fontSize = 11.sp) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.togglePoodmanStatus(
+                            bookId = target.bookId,
+                            poodmanIndex = target.poodmanIndex,
+                            videoUrl = vUrl.trim(),
+                            pdfPath = pPath.trim(),
+                            testUrl = tUrl.trim(),
+                            hasVideo = vUrl.isNotBlank(),
+                            hasPdf = pPath.isNotBlank(),
+                            hasTests = tUrl.isNotBlank()
+                        )
+                        editTarget = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryIndigo)
+                ) { Text("ذخیره") }
+            },
+            dismissButton = {
+                TextButton(onClick = { editTarget = null }) { Text("انصراف") }
+            }
+        )
+    }
+}
+
+@Composable
+private fun ResourceRow(
+    icon: @Composable () -> Unit,
+    label: String,
+    isAvailable: Boolean,
+    onToggle: (Boolean) -> Unit,
+    hasLink: Boolean,
+    onOpen: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        androidx.compose.material3.Checkbox(
+            checked = isAvailable,
+            onCheckedChange = onToggle,
+            modifier = Modifier.size(28.dp)
+        )
+        icon()
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(label, fontSize = 11.sp, modifier = Modifier.weight(1f))
+        if (hasLink) {
+            androidx.compose.material3.TextButton(onClick = onOpen) {
+                Text("پخش", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PrimaryIndigo)
+            }
+        } else {
+            Text("لینک ثبت نشده", fontSize = 10.sp, color = MaterialTheme.colorScheme.outline)
         }
     }
 }

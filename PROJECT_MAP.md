@@ -120,6 +120,13 @@
 | `AnalyticsAndNotesScreen` → `WeeklyScoreTrendSection` | نمودار خطی (Canvas) + آمار آخرین/بهترین/تغییر |
 | `KonkurViewModel.addWeeklyScore()` | ثبت نمره هفتگی برای تحلیل روند |
 
+#### کتابخانه منابع (Resource Links)
+| فایل | نقش |
+|---|---|
+| `PoodmanProgressEntity.videoUrl/pdfPath/testUrl` | لینک واقعی فیلم/جزوه/تست هر پودمان (DB v7) |
+| `BooksAndChangesScreen` → `ResourceRow` | ردیف منبع با چک‌باکس + دکمه «پخش» برای باز کردن لینک |
+| `EditTarget` + دیالوگ | فرم ویرایش لینک‌های فیلم/جزوه/تست هر پودمان |
+
 #### تم
 | فایل | نقش |
 |---|---|
