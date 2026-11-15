@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.NavigateBefore
 import androidx.compose.material.icons.filled.NavigateNext
 import androidx.compose.material.icons.filled.Quiz
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -160,6 +161,20 @@ fun QuizScreen(viewModel: KonkurViewModel) {
                     fontSize = 13.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+        }
+
+        item {
+            OutlinedButton(
+                onClick = { viewModel.selectTab(8) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("open_simulator_btn"),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(Icons.Default.Timer, contentDescription = null)
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("آزمون شبیه‌ساز ۲۵ سوال / ۳۰ دقیقه")
             }
         }
 

@@ -106,6 +106,14 @@ app/src/main/java/com/example/
 | `leitner_cards` | (bookId, poodmanIndex) | جعبه لایتنر — مرور فاصله‌دار ۱/۳/۷/۱۴/۳۰ روز |
 | `wrong_answers` | questionId | دفترچه اشتباهات — سوالات غلط آزمونک |
 
+## ⏱️ آزمون شبیه‌ساز (۲۵ سوال / ۳۰ دقیقه)
+
+- تب `nav_simulator` (`QuizSimulatorScreen`)
+- تایمر واقعی ۳۰ دقیقه + پایان خودکار
+- زمان صرف‌شده هر سوال ثبت می‌شود
+- نتیجه: درصد کل، میانگین زمان، ضعیف‌ترین پودمان
+- سوالات غلط خودکار در `wrong_answers` ذخیره می‌شوند
+
 **⚠️ نکته:** `fallbackToDestructiveMigration()` فعال است — هر بار schema عوض شد `version` را در `AppDatabase.kt` یکی زیاد کن.
 
 ---
