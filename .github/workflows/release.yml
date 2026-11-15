@@ -75,6 +75,9 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew 2>/dev/null || true
 
+      - name: Run unit tests (sanity check)
+        run: ./gradlew :app:testDebugUnitTest --stacktrace
+
       - name: Build APK (debug for pre, signed for stable)
         run: |
           if [ "${{ steps.kind.outputs.kind }}" = "stable" ]; then

@@ -29,6 +29,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -45,6 +46,7 @@ data class TimerUiState(
     val vibrateAlert: Boolean = true
 )
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class KonkurViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository: StudyRepository
