@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -215,30 +216,32 @@ fun KonkurApp(viewModel: KonkurViewModel = viewModel()) {
                         val secondaryTabIndices = listOf(2, 5, 6, 7, 8, 9)
                         val isMoreSelected = currentTab in secondaryTabIndices
                         Box {
-                            NavigationBarItem(
-                                selected = isMoreSelected,
-                                onClick = { moreMenuExpanded = true },
-                                icon = {
-                                    Icon(
-                                        imageVector = Icons.Filled.MoreHoriz,
-                                        contentDescription = "بخش‌های بیشتر",
-                                        modifier = Modifier.size(22.dp)
-                                    )
-                                },
-                                label = {
-                                    Text(
-                                        text = "بیشتر",
-                                        fontSize = 10.sp,
-                                        fontWeight = if (isMoreSelected) FontWeight.Bold else FontWeight.Normal
-                                    )
-                                },
-                                colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = PrimaryIndigo,
-                                    selectedTextColor = PrimaryIndigo,
-                                    indicatorColor = PrimaryIndigo.copy(alpha = 0.12f)
-                                ),
-                                modifier = Modifier.testTag("nav_more")
-                            )
+                            Row(modifier = Modifier.fillMaxWidth()) {
+                                NavigationBarItem(
+                                    selected = isMoreSelected,
+                                    onClick = { moreMenuExpanded = true },
+                                    icon = {
+                                        Icon(
+                                            imageVector = Icons.Filled.MoreHoriz,
+                                            contentDescription = "بخش‌های بیشتر",
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                    },
+                                    label = {
+                                        Text(
+                                            text = "بیشتر",
+                                            fontSize = 10.sp,
+                                            fontWeight = if (isMoreSelected) FontWeight.Bold else FontWeight.Normal
+                                        )
+                                    },
+                                    colors = NavigationBarItemDefaults.colors(
+                                        selectedIconColor = PrimaryIndigo,
+                                        selectedTextColor = PrimaryIndigo,
+                                        indicatorColor = PrimaryIndigo.copy(alpha = 0.12f)
+                                    ),
+                                    modifier = Modifier.testTag("nav_more")
+                                )
+                            }
                             DropdownMenu(
                                 expanded = moreMenuExpanded,
                                 onDismissRequest = { moreMenuExpanded = false }
