@@ -204,7 +204,7 @@
 7. هنگام رسیدن به صفر:
    - `triggerVibration()` (روی API 31+ از `VibratorManager`)
    - `repository.logStudyTime(minutes = initialSeconds/60, subject = sessionLabel)`
-6. لاگ در `study_logs` ذخیره شده و در `AnalyticsAndNotesScreen` نمایش داده می‌شود
+8. لاگ در `study_logs` ذخیره شده و در `AnalyticsAndNotesScreen` نمایش داده می‌شود
 
 ---
 
