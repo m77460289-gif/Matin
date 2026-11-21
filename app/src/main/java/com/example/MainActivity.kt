@@ -180,7 +180,7 @@ fun KonkurApp(viewModel: KonkurViewModel = viewModel()) {
                         containerColor = MaterialTheme.colorScheme.surface,
                         tonalElevation = 6.dp
                     ) {
-                        // Keep the five most-used destinations in the bottom bar.
+                        // Keep the four most-used destinations in the bottom bar.
                         // The remaining destinations stay available from the More menu.
                         val primaryTabIndices = listOf(0, 1, 3, 4)
                         primaryTabIndices.forEach { index ->
