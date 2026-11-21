@@ -102,11 +102,6 @@ class KonkurViewModel(application: Application) : AndroidViewModel(application) 
     init {
         val db = AppDatabase.getDatabase(application)
         repository = StudyRepository(db.studyDao())
-
-        when {
-            restoredTimer.completionPending -> completeTimer()
-            _timerState.value.isRunning -> launchTimerTicker()
-        }
     }
 
     // Navigation Tab
@@ -325,6 +320,13 @@ class KonkurViewModel(application: Application) : AndroidViewModel(application) 
 
     private var timerEndAtMillis: Long = restoredTimer.endAtMillis
     private var timerJob: Job? = null
+
+    init {
+        when {
+            restoredTimer.completionPending -> completeTimer()
+            _timerState.value.isRunning -> launchTimerTicker()
+        }
+    }
 
     private fun persistTimerState() {
         val state = _timerState.value
