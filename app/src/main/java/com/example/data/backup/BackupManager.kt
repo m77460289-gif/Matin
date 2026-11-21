@@ -2,6 +2,7 @@ package com.example.data.backup
 
 import android.content.Context
 import android.net.Uri
+import androidx.room.withTransaction
 import com.example.data.database.AppDatabase
 import com.example.data.model.CheckInEntity
 import com.example.data.model.DailySlotStatusEntity
@@ -13,220 +14,305 @@ import com.example.data.model.WeeklyScoreEntity
 import com.example.data.model.WrongAnswerEntity
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.IOException
 
 /**
- * JSON backup / restore utility for all Room tables.
- * One file (URI) contains everything: study_logs, poodman_progress, notes,
- * daily_slot_status, weekly_checkins, leitner_cards, wrong_answers, weekly_scores.
+ * Versioned JSON backup / restore utility for all eight Room tables.
+ *
+ * Version 1 backups did not include daily_slot_status or weekly_checkins.
+ * When importing a version 1 file those two newer tables are intentionally
+ * left untouched, because their data was never present in the old backup.
  */
 object BackupManager {
 
-    const val BACKUP_VERSION = 1
+    const val BACKUP_VERSION = 2
 
     /**
-     * Serialize all database content into a single JSON object string.
+     * Serialize all database content into one portable JSON document.
+     * Stable primary keys are included so a restore preserves record identity.
      */
-    suspend fun exportToJson(db: AppDatabase): String {
+    suspend fun exportToJson(db: AppDatabase): String = db.withTransaction {
         val dao = db.studyDao()
         val root = JSONObject()
-        root.put("version", BACKUP_VERSION)
-        root.put("exportedAt", System.currentTimeMillis())
+            .put("version", BACKUP_VERSION)
+            .put("exportedAt", System.currentTimeMillis())
 
-        // study_logs
-        val logs = dao.getAllStudyLogsOnce()
-        val logsArr = JSONArray()
-        logs.forEach { l ->
-            logsArr.put(JSONObject().apply {
-                put("timestamp", l.timestamp)
-                put("durationMinutes", l.durationMinutes)
-                put("subjectTitle", l.subjectTitle)
-                put("note", l.note)
-            })
-        }
-        root.put("study_logs", logsArr)
+        root.put("study_logs", JSONArray().apply {
+            dao.getAllStudyLogsOnce().forEach { log ->
+                put(JSONObject()
+                    .put("id", log.id)
+                    .put("timestamp", log.timestamp)
+                    .put("durationMinutes", log.durationMinutes)
+                    .put("subjectTitle", log.subjectTitle)
+                    .put("note", log.note))
+            }
+        })
 
-        // poodman_progress
-        val progress = dao.getAllProgressOnce()
-        val progArr = JSONArray()
-        progress.forEach { p ->
-            progArr.put(JSONObject().apply {
-                put("bookId", p.bookId)
-                put("poodmanIndex", p.poodmanIndex)
-                put("isStudied", p.isStudied)
-                put("isReviewed", p.isReviewed)
-                put("isTestPracticed", p.isTestPracticed)
-                put("hasVideo", p.hasVideo)
-                put("hasPdf", p.hasPdf)
-                put("hasTests", p.hasTests)
-                put("videoUrl", p.videoUrl)
-                put("pdfPath", p.pdfPath)
-                put("testUrl", p.testUrl)
-                put("lastUpdated", p.lastUpdated)
-            })
-        }
-        root.put("poodman_progress", progArr)
+        root.put("poodman_progress", JSONArray().apply {
+            dao.getAllProgressOnce().forEach { progress ->
+                put(JSONObject()
+                    .put("bookId", progress.bookId)
+                    .put("poodmanIndex", progress.poodmanIndex)
+                    .put("isStudied", progress.isStudied)
+                    .put("isReviewed", progress.isReviewed)
+                    .put("isTestPracticed", progress.isTestPracticed)
+                    .put("hasVideo", progress.hasVideo)
+                    .put("hasPdf", progress.hasPdf)
+                    .put("hasTests", progress.hasTests)
+                    .put("videoUrl", progress.videoUrl)
+                    .put("pdfPath", progress.pdfPath)
+                    .put("testUrl", progress.testUrl)
+                    .put("lastUpdated", progress.lastUpdated))
+            }
+        })
 
-        // notes
-        val notes = dao.getAllNotesOnce()
-        val notesArr = JSONArray()
-        notes.forEach { n ->
-            notesArr.put(JSONObject().apply {
-                put("title", n.title)
-                put("bookName", n.bookName)
-                put("content", n.content)
-                put("createdAt", n.createdAt)
-            })
-        }
-        root.put("study_notes", notesArr)
+        root.put("study_notes", JSONArray().apply {
+            dao.getAllNotesOnce().forEach { note ->
+                put(JSONObject()
+                    .put("id", note.id)
+                    .put("title", note.title)
+                    .put("bookName", note.bookName)
+                    .put("content", note.content)
+                    .put("createdAt", note.createdAt))
+            }
+        })
 
-        // leitner_cards
-        val leitner = dao.getAllLeitnerCardsOnce()
-        val leitArr = JSONArray()
-        leitner.forEach { c ->
-            leitArr.put(JSONObject().apply {
-                put("bookId", c.bookId)
-                put("poodmanIndex", c.poodmanIndex)
-                put("bookTitle", c.bookTitle)
-                put("poodmanTitle", c.poodmanTitle)
-                put("boxLevel", c.boxLevel)
-                put("nextReviewAt", c.nextReviewAt)
-                put("lastReviewedAt", c.lastReviewedAt)
-                put("reviewCount", c.reviewCount)
-                put("isMastered", c.isMastered)
-            })
-        }
-        root.put("leitner_cards", leitArr)
+        root.put("daily_slot_status", JSONArray().apply {
+            dao.getAllDailySlotStatusesOnce().forEach { status ->
+                put(JSONObject()
+                    .put("dateKey", status.dateKey)
+                    .put("slotId", status.slotId)
+                    .put("isCompleted", status.isCompleted))
+            }
+        })
 
-        // wrong_answers
-        val wrong = dao.getAllWrongAnswersOnce()
-        val wrongArr = JSONArray()
-        wrong.forEach { w ->
-            wrongArr.put(JSONObject().apply {
-                put("questionId", w.questionId)
-                put("timesWrong", w.timesWrong)
-                put("lastWrongAt", w.lastWrongAt)
-                put("isMastered", w.isMastered)
-            })
-        }
-        root.put("wrong_answers", wrongArr)
+        root.put("weekly_checkins", JSONArray().apply {
+            dao.getAllCheckInsOnce().forEach { checkIn ->
+                put(JSONObject()
+                    .put("id", checkIn.id)
+                    .put("dayType", checkIn.dayType)
+                    .put("completedText", checkIn.completedText)
+                    .put("missingText", checkIn.missingText)
+                    .put("createdAt", checkIn.createdAt))
+            }
+        })
 
-        // weekly_scores
-        val scores = dao.getAllWeeklyScoresOnce()
-        val scoreArr = JSONArray()
-        scores.forEach { s ->
-            scoreArr.put(JSONObject().apply {
-                put("weekNumber", s.weekNumber)
-                put("scorePercent", s.scorePercent)
-                put("examTitle", s.examTitle)
-                put("recordedAt", s.recordedAt)
-            })
-        }
-        root.put("weekly_scores", scoreArr)
+        root.put("leitner_cards", JSONArray().apply {
+            dao.getAllLeitnerCardsOnce().forEach { card ->
+                put(JSONObject()
+                    .put("bookId", card.bookId)
+                    .put("poodmanIndex", card.poodmanIndex)
+                    .put("bookTitle", card.bookTitle)
+                    .put("poodmanTitle", card.poodmanTitle)
+                    .put("boxLevel", card.boxLevel)
+                    .put("nextReviewAt", card.nextReviewAt)
+                    .put("lastReviewedAt", card.lastReviewedAt)
+                    .put("reviewCount", card.reviewCount)
+                    .put("isMastered", card.isMastered))
+            }
+        })
 
-        return root.toString(2)
+        root.put("wrong_answers", JSONArray().apply {
+            dao.getAllWrongAnswersOnce().forEach { wrong ->
+                put(JSONObject()
+                    .put("questionId", wrong.questionId)
+                    .put("timesWrong", wrong.timesWrong)
+                    .put("lastWrongAt", wrong.lastWrongAt)
+                    .put("isMastered", wrong.isMastered))
+            }
+        })
+
+        root.put("weekly_scores", JSONArray().apply {
+            dao.getAllWeeklyScoresOnce().forEach { score ->
+                put(JSONObject()
+                    .put("id", score.id)
+                    .put("weekNumber", score.weekNumber)
+                    .put("scorePercent", score.scorePercent)
+                    .put("examTitle", score.examTitle)
+                    .put("recordedAt", score.recordedAt))
+            }
+        })
+
+        root.toString(2)
     }
 
     /**
-     * Parse a backup JSON string and replace all tables' contents.
-     * Returns counts (logs, progress, notes, ...) for confirmation message.
+     * Validate and decode the entire backup before changing the database.
+     * The replacement itself runs in one Room transaction, so a failed write
+     * rolls back instead of leaving a partially restored database.
      */
     suspend fun importFromJson(db: AppDatabase, json: String): ImportResult {
+        val root = try {
+            JSONObject(json)
+        } catch (error: Exception) {
+            throw IllegalArgumentException("فایل پشتیبان معتبر نیست.", error)
+        }
+
+        val version = root.optInt("version", -1)
+        require(version in 1..BACKUP_VERSION) {
+            "نسخه فایل پشتیبان پشتیبانی نمی‌شود: $version"
+        }
+
+        fun requiredArray(key: String): JSONArray =
+            root.optJSONArray(key)
+                ?: throw IllegalArgumentException("بخش $key در فایل پشتیبان وجود ندارد یا معتبر نیست.")
+
+        val logs = requiredArray("study_logs").let { array ->
+            (0 until array.length()).map { index ->
+                val item = array.getJSONObject(index)
+                StudyLogEntity(
+                    id = item.optLong("id", 0L),
+                    timestamp = item.optLong("timestamp", System.currentTimeMillis()),
+                    durationMinutes = item.optInt("durationMinutes", 0),
+                    subjectTitle = item.optString("subjectTitle", ""),
+                    note = item.optString("note", "")
+                )
+            }
+        }
+
+        val progress = requiredArray("poodman_progress").let { array ->
+            (0 until array.length()).map { index ->
+                val item = array.getJSONObject(index)
+                PoodmanProgressEntity(
+                    bookId = item.optString("bookId", ""),
+                    poodmanIndex = item.optInt("poodmanIndex", 0),
+                    isStudied = item.optBoolean("isStudied"),
+                    isReviewed = item.optBoolean("isReviewed"),
+                    isTestPracticed = item.optBoolean("isTestPracticed"),
+                    hasVideo = item.optBoolean("hasVideo"),
+                    hasPdf = item.optBoolean("hasPdf"),
+                    hasTests = item.optBoolean("hasTests"),
+                    videoUrl = item.optString("videoUrl", ""),
+                    pdfPath = item.optString("pdfPath", ""),
+                    testUrl = item.optString("testUrl", ""),
+                    lastUpdated = item.optLong("lastUpdated", System.currentTimeMillis())
+                )
+            }
+        }
+
+        val notes = requiredArray("study_notes").let { array ->
+            (0 until array.length()).map { index ->
+                val item = array.getJSONObject(index)
+                StudyNoteEntity(
+                    id = item.optLong("id", 0L),
+                    title = item.optString("title", ""),
+                    bookName = item.optString("bookName", ""),
+                    content = item.optString("content", ""),
+                    createdAt = item.optLong("createdAt", System.currentTimeMillis())
+                )
+            }
+        }
+
+        val dailySlots = if (version >= 2) {
+            requiredArray("daily_slot_status").let { array ->
+                (0 until array.length()).map { index ->
+                    val item = array.getJSONObject(index)
+                    DailySlotStatusEntity(
+                        dateKey = item.optString("dateKey", ""),
+                        slotId = item.optString("slotId", ""),
+                        isCompleted = item.optBoolean("isCompleted")
+                    )
+                }
+            }
+        } else {
+            null
+        }
+
+        val checkIns = if (version >= 2) {
+            requiredArray("weekly_checkins").let { array ->
+                (0 until array.length()).map { index ->
+                    val item = array.getJSONObject(index)
+                    CheckInEntity(
+                        id = item.optLong("id", 0L),
+                        dayType = item.optString("dayType", ""),
+                        completedText = item.optString("completedText", ""),
+                        missingText = item.optString("missingText", ""),
+                        createdAt = item.optLong("createdAt", System.currentTimeMillis())
+                    )
+                }
+            }
+        } else {
+            null
+        }
+
+        val leitner = requiredArray("leitner_cards").let { array ->
+            (0 until array.length()).map { index ->
+                val item = array.getJSONObject(index)
+                LeitnerCardEntity(
+                    bookId = item.optString("bookId", ""),
+                    poodmanIndex = item.optInt("poodmanIndex", 0),
+                    bookTitle = item.optString("bookTitle", ""),
+                    poodmanTitle = item.optString("poodmanTitle", ""),
+                    boxLevel = item.optInt("boxLevel", 1),
+                    nextReviewAt = item.optLong("nextReviewAt", 0L),
+                    lastReviewedAt = item.optLong("lastReviewedAt", 0L),
+                    reviewCount = item.optInt("reviewCount", 0),
+                    isMastered = item.optBoolean("isMastered")
+                )
+            }
+        }
+
+        val wrongAnswers = requiredArray("wrong_answers").let { array ->
+            (0 until array.length()).map { index ->
+                val item = array.getJSONObject(index)
+                WrongAnswerEntity(
+                    questionId = item.optInt("questionId", 0),
+                    timesWrong = item.optInt("timesWrong", 1),
+                    lastWrongAt = item.optLong("lastWrongAt", System.currentTimeMillis()),
+                    isMastered = item.optBoolean("isMastered")
+                )
+            }
+        }
+
+        val scores = requiredArray("weekly_scores").let { array ->
+            (0 until array.length()).map { index ->
+                val item = array.getJSONObject(index)
+                WeeklyScoreEntity(
+                    id = item.optLong("id", 0L),
+                    weekNumber = item.optInt("weekNumber", 0),
+                    scorePercent = item.optInt("scorePercent", 0),
+                    examTitle = item.optString("examTitle", "آزمون هفتگی"),
+                    recordedAt = item.optLong("recordedAt", System.currentTimeMillis())
+                )
+            }
+        }
+
         val dao = db.studyDao()
-        val root = JSONObject(json)
+        db.withTransaction {
+            dao.clearAllStudyLogs()
+            dao.clearAllProgress()
+            dao.clearAllNotes()
+            dao.clearAllLeitnerCards()
+            dao.clearWrongAnswers()
+            dao.clearAllWeeklyScores()
 
-        val logs = root.optJSONArray("study_logs") ?: JSONArray()
-        val progress = root.optJSONArray("poodman_progress") ?: JSONArray()
-        val notes = root.optJSONArray("study_notes") ?: JSONArray()
-        val leitner = root.optJSONArray("leitner_cards") ?: JSONArray()
-        val wrongs = root.optJSONArray("wrong_answers") ?: JSONArray()
-        val scores = root.optJSONArray("weekly_scores") ?: JSONArray()
+            // Version 1 backups never contained these tables. Preserve their
+            // current contents when restoring an older file.
+            if (dailySlots != null && checkIns != null) {
+                dao.clearAllDailySlotStatuses()
+                dao.clearAllCheckIns()
+            }
 
-        // Clear existing data first
-        dao.clearAllStudyLogs()
-        dao.clearAllProgress()
-        dao.clearAllNotes()
-        dao.clearAllLeitnerCards()
-        dao.clearWrongAnswers()
-        dao.clearAllWeeklyScores()
-
-        var logCount = 0; var progCount = 0; var noteCount = 0
-        var leitCount = 0; var wrongCount = 0; var scoreCount = 0
-
-        for (i in 0 until logs.length()) {
-            val o = logs.getJSONObject(i)
-            dao.insertStudyLog(StudyLogEntity(
-                timestamp = o.optLong("timestamp", System.currentTimeMillis()),
-                durationMinutes = o.optInt("durationMinutes", 0),
-                subjectTitle = o.optString("subjectTitle", ""),
-                note = o.optString("note", "")
-            ))
-            logCount++
-        }
-        for (i in 0 until progress.length()) {
-            val o = progress.getJSONObject(i)
-            dao.savePoodmanProgress(PoodmanProgressEntity(
-                bookId = o.optString("bookId"),
-                poodmanIndex = o.optInt("poodmanIndex"),
-                isStudied = o.optBoolean("isStudied"),
-                isReviewed = o.optBoolean("isReviewed"),
-                isTestPracticed = o.optBoolean("isTestPracticed"),
-                hasVideo = o.optBoolean("hasVideo"),
-                hasPdf = o.optBoolean("hasPdf"),
-                hasTests = o.optBoolean("hasTests"),
-                videoUrl = o.optString("videoUrl", ""),
-                pdfPath = o.optString("pdfPath", ""),
-                testUrl = o.optString("testUrl", ""),
-                lastUpdated = o.optLong("lastUpdated", System.currentTimeMillis())
-            ))
-            progCount++
-        }
-        for (i in 0 until notes.length()) {
-            val o = notes.getJSONObject(i)
-            dao.insertNote(StudyNoteEntity(
-                title = o.optString("title"),
-                bookName = o.optString("bookName"),
-                content = o.optString("content"),
-                createdAt = o.optLong("createdAt", System.currentTimeMillis())
-            ))
-            noteCount++
-        }
-        for (i in 0 until leitner.length()) {
-            val o = leitner.getJSONObject(i)
-            dao.upsertLeitnerCard(LeitnerCardEntity(
-                bookId = o.optString("bookId"),
-                poodmanIndex = o.optInt("poodmanIndex"),
-                bookTitle = o.optString("bookTitle"),
-                poodmanTitle = o.optString("poodmanTitle"),
-                boxLevel = o.optInt("boxLevel", 1),
-                nextReviewAt = o.optLong("nextReviewAt"),
-                lastReviewedAt = o.optLong("lastReviewedAt", 0),
-                reviewCount = o.optInt("reviewCount", 0),
-                isMastered = o.optBoolean("isMastered")
-            ))
-            leitCount++
-        }
-        for (i in 0 until wrongs.length()) {
-            val o = wrongs.getJSONObject(i)
-            dao.upsertWrongAnswer(WrongAnswerEntity(
-                questionId = o.optInt("questionId"),
-                timesWrong = o.optInt("timesWrong", 1),
-                lastWrongAt = o.optLong("lastWrongAt", System.currentTimeMillis()),
-                isMastered = o.optBoolean("isMastered")
-            ))
-            wrongCount++
-        }
-        for (i in 0 until scores.length()) {
-            val o = scores.getJSONObject(i)
-            dao.insertWeeklyScore(WeeklyScoreEntity(
-                weekNumber = o.optInt("weekNumber"),
-                scorePercent = o.optInt("scorePercent"),
-                examTitle = o.optString("examTitle", "آزمون هفتگی"),
-                recordedAt = o.optLong("recordedAt", System.currentTimeMillis())
-            ))
-            scoreCount++
+            logs.forEach { dao.insertStudyLog(it) }
+            progress.forEach { dao.savePoodmanProgress(it) }
+            notes.forEach { dao.insertNote(it) }
+            dailySlots?.forEach { dao.setSlotStatus(it) }
+            checkIns?.forEach { dao.insertCheckIn(it) }
+            leitner.forEach { dao.upsertLeitnerCard(it) }
+            wrongAnswers.forEach { dao.upsertWrongAnswer(it) }
+            scores.forEach { dao.insertWeeklyScore(it) }
         }
 
-        return ImportResult(logCount, progCount, noteCount, leitCount, wrongCount, scoreCount)
+        return ImportResult(
+            logs = logs.size,
+            progress = progress.size,
+            notes = notes.size,
+            leitner = leitner.size,
+            wrongAnswers = wrongAnswers.size,
+            scores = scores.size,
+            dailySlots = dailySlots?.size ?: 0,
+            checkIns = checkIns?.size ?: 0
+        )
     }
 
     data class ImportResult(
@@ -235,22 +321,25 @@ object BackupManager {
         val notes: Int,
         val leitner: Int,
         val wrongAnswers: Int,
-        val scores: Int
+        val scores: Int,
+        val dailySlots: Int = 0,
+        val checkIns: Int = 0
     ) {
-        val total = logs + progress + notes + leitner + wrongAnswers + scores
+        val total: Int
+            get() = logs + progress + notes + leitner + wrongAnswers + scores + dailySlots + checkIns
     }
 
     /** Write JSON string to a user-picked URI. */
     fun writeJsonToUri(context: Context, uri: Uri, json: String) {
-        context.contentResolver.openOutputStream(uri)?.use { out ->
-            out.write(json.toByteArray(Charsets.UTF_8))
-        }
+        val output = context.contentResolver.openOutputStream(uri)
+            ?: throw IOException("امکان ایجاد فایل پشتیبان وجود ندارد.")
+        output.use { it.write(json.toByteArray(Charsets.UTF_8)) }
     }
 
     /** Read JSON string from a user-picked URI. */
     fun readJsonFromUri(context: Context, uri: Uri): String {
-        return context.contentResolver.openInputStream(uri)?.use { input ->
-            input.readBytes().toString(Charsets.UTF_8)
-        } ?: ""
+        val input = context.contentResolver.openInputStream(uri)
+            ?: throw IOException("امکان خواندن فایل پشتیبان وجود ندارد.")
+        return input.use { it.readBytes().toString(Charsets.UTF_8) }
     }
 }

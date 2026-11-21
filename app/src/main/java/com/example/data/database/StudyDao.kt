@@ -128,6 +128,12 @@ interface StudyDao {
     @Query("SELECT * FROM weekly_scores")
     suspend fun getAllWeeklyScoresOnce(): List<WeeklyScoreEntity>
 
+    @Query("SELECT * FROM daily_slot_status ORDER BY dateKey ASC, slotId ASC")
+    suspend fun getAllDailySlotStatusesOnce(): List<DailySlotStatusEntity>
+
+    @Query("SELECT * FROM weekly_checkins ORDER BY createdAt DESC")
+    suspend fun getAllCheckInsOnce(): List<CheckInEntity>
+
     // Backup/restore — clear helpers
     @Query("DELETE FROM study_logs")
     suspend fun clearAllStudyLogs()
@@ -143,4 +149,10 @@ interface StudyDao {
 
     @Query("DELETE FROM weekly_scores")
     suspend fun clearAllWeeklyScores()
+
+    @Query("DELETE FROM daily_slot_status")
+    suspend fun clearAllDailySlotStatuses()
+
+    @Query("DELETE FROM weekly_checkins")
+    suspend fun clearAllCheckIns()
 }

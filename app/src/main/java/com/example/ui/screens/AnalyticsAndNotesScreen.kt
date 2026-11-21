@@ -572,6 +572,7 @@ private fun BackupSection(
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
+    var pendingRestoreUri by remember { mutableStateOf<android.net.Uri?>(null) }
 
     val exportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json")
@@ -591,16 +592,58 @@ private fun BackupSection(
     val importLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
-        if (uri == null) return@rememberLauncherForActivityResult
-        scope.launch {
-            try {
-                val json = com.example.data.backup.BackupManager.readJsonFromUri(context, uri)
-                val result = viewModel.importBackupJson(json)
-                onMessage("✅ بازیابی موفق:\n\n• ${result.logs} جلسه مطالعه\n• ${result.progress} پیشرفت پودمان\n• ${result.notes} نکته\n• ${result.leitner} کارت لایتنر\n• ${result.wrongAnswers} سوال غلط\n• ${result.scores} نمره آزمون\n\nمجموع: ${result.total} رکورد")
-            } catch (e: Exception) {
-                onMessage("❌ خطا در بازیابی: ${e.message}\n\nمطمئن شوید فایل JSON معتبر است.")
+        if (uri != null) pendingRestoreUri = uri
+    }
+
+    pendingRestoreUri?.let { selectedUri ->
+        AlertDialog(
+            onDismissRequest = { pendingRestoreUri = null },
+            title = { Text("تأیید بازیابی پشتیبان") },
+            text = {
+                Text(
+                    "اطلاعات فعلی مطالعه با محتوای فایل انتخاب‌شده جایگزین می‌شود. " +
+                        "پیش از ادامه، مطمئن شو از اطلاعات فعلی خروجی پشتیبان گرفته‌ای."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        pendingRestoreUri = null
+                        scope.launch {
+                            try {
+                                val json = com.example.data.backup.BackupManager.readJsonFromUri(context, selectedUri)
+                                val result = viewModel.importBackupJson(json)
+                                onMessage(
+                                    "✅ بازیابی موفق:\\n\\n" +
+                                        "• ${result.logs} جلسه مطالعه\\n" +
+                                        "• ${result.progress} پیشرفت پودمان\\n" +
+                                        "• ${result.notes} نکته\\n" +
+                                        "• ${result.dailySlots} وضعیت برنامه روزانه\\n" +
+                                        "• ${result.checkIns} گزارش پیگیری\\n" +
+                                        "• ${result.leitner} کارت لایتنر\\n" +
+                                        "• ${result.wrongAnswers} سؤال غلط\\n" +
+                                        "• ${result.scores} نمره آزمون\\n\\n" +
+                                        "مجموع: ${result.total} رکورد"
+                                )
+                            } catch (e: Exception) {
+                                onMessage("❌ خطا در بازیابی: ${e.message}\\n\\nمطمئن شوید فایل JSON معتبر است.")
+                            }
+                        }
+                    },
+                    modifier = Modifier.testTag("confirm_restore_btn")
+                ) {
+                    Text("جایگزینی اطلاعات")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { pendingRestoreUri = null },
+                    modifier = Modifier.testTag("cancel_restore_btn")
+                ) {
+                    Text("انصراف")
+                }
             }
-        }
+        )
     }
 
     Card(
