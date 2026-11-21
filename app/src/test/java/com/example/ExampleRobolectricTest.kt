@@ -2,7 +2,21 @@ package com.example
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import androidx.room.Room
+import com.example.data.backup.BackupManager
+import com.example.data.database.AppDatabase
+import com.example.data.model.CheckInEntity
+import com.example.data.model.DailySlotStatusEntity
+import com.example.data.model.LeitnerCardEntity
+import com.example.data.model.PoodmanProgressEntity
+import com.example.data.model.StudyLogEntity
+import com.example.data.model.StudyNoteEntity
+import com.example.data.model.WeeklyScoreEntity
+import com.example.data.model.WrongAnswerEntity
 import com.example.data.curriculum.ComputerCurriculumData
+import kotlinx.coroutines.runBlocking
+import org.json.JSONArray
+import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -44,6 +58,118 @@ class ExampleRobolectricTest {
     weeklyPlan.forEach { dayPlan ->
       val totalMinutes = dayPlan.slots.sumOf { it.durationMinutes }
       assertEquals("Daily slots must sum up to exactly 120 minutes (2 hours)", 120, totalMinutes)
+    }
+  }
+
+  @Test
+  fun `backup round trip preserves all eight database tables`() = runBlocking {
+    val context = ApplicationProvider.getApplicationContext<Context>()
+    val database = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
+      .allowMainThreadQueries()
+      .build()
+
+    try {
+      val dao = database.studyDao()
+      dao.insertStudyLog(StudyLogEntity(id = 11L, durationMinutes = 45, subjectTitle = "شبکه", note = "جلسه اول"))
+      dao.savePoodmanProgress(PoodmanProgressEntity(bookId = "network", poodmanIndex = 2, isStudied = true))
+      dao.insertNote(StudyNoteEntity(id = 12L, title = "نکته", bookName = "شبکه", content = "محتوای آزمایشی"))
+      dao.setSlotStatus(DailySlotStatusEntity(dateKey = "2026-11-21", slotId = "slot-1", isCompleted = true))
+      dao.insertCheckIn(CheckInEntity(id = 13L, dayType = "یکشنبه", completedText = "مطالعه", missingText = "مرور"))
+      dao.upsertLeitnerCard(
+        LeitnerCardEntity(
+          bookId = "network",
+          poodmanIndex = 2,
+          bookTitle = "دانش فنی",
+          poodmanTitle = "پودمان دوم",
+          nextReviewAt = 1_800_000_000_000L
+        )
+      )
+      dao.upsertWrongAnswer(WrongAnswerEntity(questionId = 101, timesWrong = 2))
+      dao.insertWeeklyScore(WeeklyScoreEntity(id = 14L, weekNumber = 3, scorePercent = 85))
+
+      val backup = BackupManager.exportToJson(database)
+      val exported = JSONObject(backup)
+      assertEquals(BackupManager.BACKUP_VERSION, exported.getInt("version"))
+      listOf(
+        "study_logs",
+        "poodman_progress",
+        "study_notes",
+        "daily_slot_status",
+        "weekly_checkins",
+        "leitner_cards",
+        "wrong_answers",
+        "weekly_scores"
+      ).forEach { table -> assertTrue("Missing backup table: $table", exported.has(table)) }
+
+      val emptyBackup = JSONObject()
+        .put("version", BackupManager.BACKUP_VERSION)
+        .put("study_logs", JSONArray())
+        .put("poodman_progress", JSONArray())
+        .put("study_notes", JSONArray())
+        .put("daily_slot_status", JSONArray())
+        .put("weekly_checkins", JSONArray())
+        .put("leitner_cards", JSONArray())
+        .put("wrong_answers", JSONArray())
+        .put("weekly_scores", JSONArray())
+      BackupManager.importFromJson(database, emptyBackup.toString())
+      val result = BackupManager.importFromJson(database, backup)
+
+      assertEquals(8, result.total)
+      assertEquals(1, result.logs)
+      assertEquals(1, result.progress)
+      assertEquals(1, result.notes)
+      assertEquals(1, result.dailySlots)
+      assertEquals(1, result.checkIns)
+      assertEquals(1, result.leitner)
+      assertEquals(1, result.wrongAnswers)
+      assertEquals(1, result.scores)
+
+      assertEquals(11L, dao.getAllStudyLogsOnce().single().id)
+      assertEquals("network", dao.getAllProgressOnce().single().bookId)
+      assertEquals(12L, dao.getAllNotesOnce().single().id)
+      assertTrue(dao.getAllDailySlotStatusesOnce().single().isCompleted)
+      assertEquals(13L, dao.getAllCheckInsOnce().single().id)
+      assertEquals(2, dao.getAllLeitnerCardsOnce().single().poodmanIndex)
+      assertEquals(101, dao.getAllWrongAnswersOnce().single().questionId)
+      assertEquals(14L, dao.getAllWeeklyScoresOnce().single().id)
+    } finally {
+      database.close()
+    }
+  }
+
+  @Test
+  fun `invalid backup does not clear existing study data`() = runBlocking {
+    val context = ApplicationProvider.getApplicationContext<Context>()
+    val database = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
+      .allowMainThreadQueries()
+      .build()
+
+    try {
+      val dao = database.studyDao()
+      dao.insertStudyLog(StudyLogEntity(durationMinutes = 30, subjectTitle = "ریاضی"))
+
+      val invalidBackup = JSONObject()
+        .put("version", BackupManager.BACKUP_VERSION)
+        .put("study_logs", JSONArray().put("not-an-object"))
+        .put("poodman_progress", JSONArray())
+        .put("study_notes", JSONArray())
+        .put("daily_slot_status", JSONArray())
+        .put("weekly_checkins", JSONArray())
+        .put("leitner_cards", JSONArray())
+        .put("wrong_answers", JSONArray())
+        .put("weekly_scores", JSONArray())
+
+      try {
+        BackupManager.importFromJson(database, invalidBackup.toString())
+        fail("Malformed backup should be rejected")
+      } catch (_: Exception) {
+        // Expected: all entries are decoded before the transaction starts.
+      }
+
+      assertEquals(1, dao.getAllStudyLogsOnce().size)
+      assertEquals(30, dao.getAllStudyLogsOnce().single().durationMinutes)
+    } finally {
+      database.close()
     }
   }
 
