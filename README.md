@@ -1,54 +1,112 @@
-# Konkur Computer - کنکور کامپیوتر
+# کنکور کامپیوتر | Konkur Computer
 
-اپلیکیشن اندروید برنامه‌ریزی مطالعه کنکور فنی‌وحرفه‌ای، رشته شبکه و نرم‌افزار رایانه.
+اپلیکیشن اندروید برای برنامه‌ریزی و پیگیری مطالعه داوطلبان کنکور فنی‌وحرفه‌ای رشته شبکه و نرم‌افزار رایانه.
 
-## درباره پروژه
+## امکانات اصلی
 
-- برنامه‌ریزی دقیق ۲ ساعت مطالعه روزانه
-- تحلیل تغییرات کتب درسی دهم / یازدهم / دوازدهم
-- پیگیری وضعیت ۳۵ پودمان (مطالعه / مرور / تست)
-- تایمر تمرکز (پومودورو ۴۵/۳۵/۲۵ دقیقه)
-- آمار پیشرفت + دفترچه نکات شخصی
-- آزمونک تستی با تحلیل تشریحی و نکته طلایی
+- برنامه‌ریزی روزانه با بازه‌های مطالعه دوساعته
+- مرور کتاب‌ها و پیگیری وضعیت پودمان‌های درسی
+- تایمر تمرکز با زمان‌های ازپیش‌تعریف‌شده
+- آزمونک و آزمون شبیه‌ساز
+- ثبت آمار مطالعه، روند پیشرفت و دفترچه نکات
+- برنامه‌ریزی تا روز کنکور
+- مرور فاصله‌دار با روش لایتنر
+- گزارش عملکرد برای والدین
+- پشتیبان‌گیری و بازیابی اطلاعات
 
-## اجرا
+## ساختار رابط کاربری
+
+رابط کاربری با Jetpack Compose و Material 3 پیاده‌سازی شده و چیدمان فارسی (RTL) دارد.
+
+### پیمایش در گوشی
+
+برای خلوت ماندن صفحه، نوار پایین فقط چهار مقصد پرکاربرد را نمایش می‌دهد:
+
+1. داشبورد
+2. برنامه ۲ ساعت
+3. تایمر تمرکز
+4. آزمونک
+
+شش مقصد دیگر از گزینه «بیشتر» در نوار پایین در دسترس هستند: کتاب‌ها و تغییرات، آمار و نکات، برنامه تا کنکور، مرور امروز، آزمون شبیه‌ساز و پنل والد.
+
+### پیمایش در تبلت
+
+در عرض صفحه ۶۰۰dp و بیشتر، برنامه از NavigationRail استفاده می‌کند و همه مقصدها در نوار کناری قابل انتخاب‌اند.
+
+## معماری فنی
+
+- **زبان:** Kotlin
+- **رابط کاربری:** Jetpack Compose و Material 3
+- **مدیریت وضعیت:** `KonkurViewModel` با StateFlow
+- **ذخیره‌سازی محلی:** Room
+- **داده‌های ثابت آموزشی:** `ComputerCurriculumData`
+- **ساخت:** Gradle و Version Catalog
+
+### اجزای مهم
+
+| مسیر | مسئولیت |
+|---|---|
+| `app/src/main/java/com/example/MainActivity.kt` | نقطه ورود، پیمایش و انتخاب صفحه |
+| `ui/viewmodel/KonkurViewModel.kt` | وضعیت برنامه، تایمر و عملیات مطالعه |
+| `data/model/Models.kt` | مدل‌ها و Entityهای ذخیره‌سازی |
+| `data/database/AppDatabase.kt` | تعریف پایگاه داده Room |
+| `data/database/StudyDao.kt` | پرس‌وجوها و عملیات پایگاه داده |
+| `data/repository/StudyRepository.kt` | لایه دسترسی به داده |
+| `data/curriculum/ComputerCurriculumData.kt` | اطلاعات کتاب‌ها و برنامه آموزشی |
+| `data/backup/BackupManager.kt` | خروجی و بازیابی پشتیبان |
+
+## پایگاه داده
+
+Room در نسخه ۷ با هشت Entity تعریف شده است:
+
+- `StudyLogEntity` — سوابق مطالعه
+- `PoodmanProgressEntity` — پیشرفت پودمان‌ها
+- `StudyNoteEntity` — یادداشت‌های مطالعه
+- `DailySlotStatusEntity` — وضعیت بخش‌های برنامه روزانه
+- `CheckInEntity` — ثبت‌های پیگیری روزانه
+- `LeitnerCardEntity` — کارت‌های مرور لایتنر
+- `WrongAnswerEntity` — پاسخ‌های نادرست
+- `WeeklyScoreEntity` — نمره‌های آزمون هفتگی
+
+**نکته مهم درباره داده‌ها:** پیکربندی فعلی Room از `fallbackToDestructiveMigration()` استفاده می‌کند. اگر نسخه پایگاه داده افزایش یابد و مسیر مهاجرت مناسبی تعریف نشده باشد، Room ممکن است پایگاه داده محلی را حذف و دوباره ایجاد کند. پیش از انتشار نسخه‌ای که schema را تغییر می‌دهد، مهاجرت‌ها و بازیابی نسخه پشتیبان را آزمایش کنید.
+
+## پیش‌نیازها
+
+- Android SDK با API 36 برای ساخت پیکربندی فعلی
+- حداقل نسخه اندروید: API 24 (Android 7)
+- JDK سازگار با نسخه Android Gradle Plugin پروژه
+
+## ساخت و اجرا
+
+در ریشه مخزن اجرا کنید:
 
 ```bash
 ./gradlew assembleDebug
-# خروجی: app/build/outputs/apk/debug/app-debug.apk
-
-python server.py        # وب‌لندینگ روی http://localhost:3000
 ```
 
-## معماری
+فایل APK نسخه Debug در مسیر زیر ساخته می‌شود:
 
-- UI: Jetpack Compose + Material 3 (RTL فارسی)
-- State: KonkurViewModel (AndroidViewModel + StateFlow)
-- Data: Room (۴ جدول) + Repository Pattern
-- Static Data: ComputerCurriculumData
-- Adaptive UI: گوشی (Bottom Nav) + تبلت (NavigationRail)
+```
+app/build/outputs/apk/debug/app-debug.apk
+```
 
-## ماژول‌های کلیدی
+برای اجرای آزمون‌ها:
 
-- MainActivity.kt - ورودی و Navigation
-- KonkurViewModel.kt - State، تایمر، ثبت مطالعه
-- data/model/Models.kt - Entity و Domain Models
-- data/database/AppDatabase.kt و StudyDao.kt - Room
-- data/repository/StudyRepository.kt
-- data/curriculum/ComputerCurriculumData.kt - داده‌های ثابت
-- ui/screens/* - شش صفحه اپلیکیشن
-- server.py - وب‌لندینگ + Serve فایل APK و ZIP
+```bash
+./gradlew test
+```
 
-## جداول دیتابیس
+در ویندوز از `gradlew.bat` به‌جای `./gradlew` استفاده کنید.
 
-| جدول | نقش |
-|---|---|
-| study_logs | جلسات مطالعه ثبت‌شده |
-| poodman_progress | وضعیت مطالعه هر پودمان |
-| study_notes | دفترچه نکات شخصی |
-| daily_slot_status | چک‌لیست برنامه روزانه |
+## امضای نسخه انتشار
 
-## حداقل سیستم‌عامل
+پروژه تنظیمات امضای Release را در `app/build.gradle.kts` دارد. کلید و اطلاعات امضا از متغیرهای محیطی یا فایل محلی `release-signing.properties` خوانده می‌شوند. فایل کلید و رمزهای امضا را وارد مخزن عمومی نکنید. در نبود کلید انتشار، پیکربندی فعلی از امضای Debug برای ساخت Release استفاده می‌کند؛ این خروجی برای انتشار نهایی در فروشگاه مناسب نیست.
 
-- minSdk 24 (اندروید ۷)
-- targetSdk 36
+## وب‌لندینگ
+
+در صورت نیاز به اجرای وب‌لندینگ، اسکریپت موجود پروژه را از ریشه مخزن اجرا کنید:
+
+```bash
+python server.py
+```
+
