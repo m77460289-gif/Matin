@@ -18,9 +18,15 @@ class StudyRepository(private val dao: StudyDao) {
     val allProgress: Flow<List<PoodmanProgressEntity>> = dao.getAllProgress()
     val allNotes: Flow<List<StudyNoteEntity>> = dao.getAllNotes()
 
-    suspend fun logStudyTime(minutes: Int, subjectTitle: String, note: String = ""): Long {
+    suspend fun logStudyTime(
+        minutes: Int,
+        subjectTitle: String,
+        note: String = "",
+        id: Long = 0L
+    ): Long {
         return dao.insertStudyLog(
             StudyLogEntity(
+                id = id,
                 durationMinutes = minutes,
                 subjectTitle = subjectTitle,
                 note = note
