@@ -174,6 +174,39 @@ class ExampleRobolectricTest {
   }
 
   @Test
+  fun `version one backup keeps tables that older backups did not contain`() = runBlocking {
+    val context = ApplicationProvider.getApplicationContext<Context>()
+    val database = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
+      .allowMainThreadQueries()
+      .build()
+
+    try {
+      val dao = database.studyDao()
+      dao.setSlotStatus(DailySlotStatusEntity(dateKey = "2026-11-21", slotId = "keep-me", isCompleted = true))
+      dao.insertCheckIn(CheckInEntity(dayType = "پنجشنبه", completedText = "آزمون", missingText = ""))
+
+      val versionOneBackup = JSONObject()
+        .put("version", 1)
+        .put("study_logs", JSONArray())
+        .put("poodman_progress", JSONArray())
+        .put("study_notes", JSONArray())
+        .put("leitner_cards", JSONArray())
+        .put("wrong_answers", JSONArray())
+        .put("weekly_scores", JSONArray())
+
+      val result = BackupManager.importFromJson(database, versionOneBackup.toString())
+
+      assertEquals(0, result.dailySlots)
+      assertEquals(0, result.checkIns)
+      assertEquals(1, dao.getAllDailySlotStatusesOnce().size)
+      assertEquals(1, dao.getAllCheckInsOnce().size)
+      assertTrue(dao.getAllDailySlotStatusesOnce().single().isCompleted)
+    } finally {
+      database.close()
+    }
+  }
+
+  @Test
   fun `verify sample quiz questions format`() {
     val questions = ComputerCurriculumData.sampleQuestions
     assertTrue(questions.isNotEmpty())
