@@ -31,7 +31,7 @@ object BackupManager {
      * Serialize all database content into one portable JSON document.
      * Stable primary keys are included so a restore preserves record identity.
      */
-    suspend fun exportToJson(db: AppDatabase): String {
+    suspend fun exportToJson(db: AppDatabase): String = db.withTransaction {
         val dao = db.studyDao()
         val root = JSONObject()
             .put("version", BACKUP_VERSION)
@@ -133,7 +133,7 @@ object BackupManager {
             }
         })
 
-        return root.toString(2)
+        root.toString(2)
     }
 
     /**
