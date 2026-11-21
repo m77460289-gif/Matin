@@ -394,7 +394,8 @@ class KonkurViewModel(application: Application) : AndroidViewModel(application) 
                 if (_timerState.value.remainingSeconds != remainingSeconds) {
                     _timerState.value = _timerState.value.copy(remainingSeconds = remainingSeconds)
                 }
-                delay(200L)
+                val timeToNextSecond = (remainingMillis % 1000L).let { if (it == 0L) 1000L else it }
+                delay(timeToNextSecond.coerceIn(50L, 1000L))
             }
         }
     }
