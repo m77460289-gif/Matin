@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.room.Room
 import com.example.data.backup.BackupManager
 import com.example.data.database.AppDatabase
+import com.example.data.repository.StudyRepository
 import com.example.data.model.CheckInEntity
 import com.example.data.model.DailySlotStatusEntity
 import com.example.data.model.LeitnerCardEntity
@@ -229,6 +230,26 @@ class ExampleRobolectricTest {
     recreatedViewModel.pauseTimer()
     application.getSharedPreferences("timer_state", Context.MODE_PRIVATE)
       .edit().clear().commit()
+  }
+
+  @Test
+  fun `retrying timer completion with the same id does not duplicate study logs`() = runBlocking {
+    val context = ApplicationProvider.getApplicationContext<Context>()
+    val database = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
+      .allowMainThreadQueries()
+      .build()
+
+    try {
+      val repository = StudyRepository(database.studyDao())
+      repository.logStudyTime(2, "جلسه آزمایشی", "ثبت تایمر", id = -12345L)
+      repository.logStudyTime(2, "جلسه آزمایشی", "ثبت تایمر", id = -12345L)
+
+      val logs = database.studyDao().getAllStudyLogsOnce()
+      assertEquals(1, logs.size)
+      assertEquals(-12345L, logs.single().id)
+    } finally {
+      database.close()
+    }
   }
 
   @Test
