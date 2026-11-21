@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Quiz
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SupervisorAccount
@@ -29,6 +30,8 @@ import androidx.compose.material.icons.outlined.Quiz
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.SupervisorAccount
 import androidx.compose.material.icons.outlined.Timer
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -44,6 +47,9 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
@@ -103,6 +109,7 @@ fun KonkurApp(viewModel: KonkurViewModel = viewModel()) {
     val currentTab by viewModel.currentTab.collectAsStateWithLifecycle()
     val configuration = LocalConfiguration.current
     val isTablet = configuration.screenWidthDp >= 600
+    var moreMenuExpanded by remember { mutableStateOf(false) }
 
     val navItems = listOf(
         NavTabItem("داشبورد", Icons.Filled.Dashboard, Icons.Outlined.Dashboard, "nav_dashboard"),
@@ -173,7 +180,11 @@ fun KonkurApp(viewModel: KonkurViewModel = viewModel()) {
                         containerColor = MaterialTheme.colorScheme.surface,
                         tonalElevation = 6.dp
                     ) {
-                        navItems.forEachIndexed { index, item ->
+                        // Keep the five most-used destinations in the bottom bar.
+                        // The remaining destinations stay available from the More menu.
+                        val primaryTabIndices = listOf(0, 1, 3, 4)
+                        primaryTabIndices.forEach { index ->
+                            val item = navItems[index]
                             val isSelected = currentTab == index
                             NavigationBarItem(
                                 selected = isSelected,
@@ -199,6 +210,57 @@ fun KonkurApp(viewModel: KonkurViewModel = viewModel()) {
                                 ),
                                 modifier = Modifier.testTag(item.testTag)
                             )
+                        }
+
+                        val secondaryTabIndices = listOf(2, 5, 6, 7, 8, 9)
+                        val isMoreSelected = currentTab in secondaryTabIndices
+                        Box {
+                            NavigationBarItem(
+                                selected = isMoreSelected,
+                                onClick = { moreMenuExpanded = true },
+                                icon = {
+                                    Icon(
+                                        imageVector = Icons.Filled.MoreHoriz,
+                                        contentDescription = "بخش‌های بیشتر",
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                },
+                                label = {
+                                    Text(
+                                        text = "بیشتر",
+                                        fontSize = 10.sp,
+                                        fontWeight = if (isMoreSelected) FontWeight.Bold else FontWeight.Normal
+                                    )
+                                },
+                                colors = NavigationBarItemDefaults.colors(
+                                    selectedIconColor = PrimaryIndigo,
+                                    selectedTextColor = PrimaryIndigo,
+                                    indicatorColor = PrimaryIndigo.copy(alpha = 0.12f)
+                                ),
+                                modifier = Modifier.testTag("nav_more")
+                            )
+                            DropdownMenu(
+                                expanded = moreMenuExpanded,
+                                onDismissRequest = { moreMenuExpanded = false }
+                            ) {
+                                secondaryTabIndices.forEach { index ->
+                                    val item = navItems[index]
+                                    DropdownMenuItem(
+                                        text = { Text(item.title) },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = if (currentTab == index) item.selectedIcon else item.unselectedIcon,
+                                                contentDescription = null
+                                            )
+                                        },
+                                        onClick = {
+                                            moreMenuExpanded = false
+                                            viewModel.selectTab(index)
+                                        },
+                                        modifier = Modifier.testTag(item.testTag)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
