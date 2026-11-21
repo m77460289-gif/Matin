@@ -54,13 +54,15 @@ data class TimerUiState(
 private data class TimerRestore(
     val state: TimerUiState,
     val endAtMillis: Long,
-    val completionPending: Boolean
+    val sessionLogId: Long,
+    val completionPending: Boolean,
+    val completionLogPending: Boolean
 )
 
 private fun restoreTimerState(application: Application): TimerRestore {
     val prefs = application.getSharedPreferences("timer_state", Context.MODE_PRIVATE)
     if (!prefs.contains("initialSeconds")) {
-        return TimerRestore(TimerUiState(), 0L, false)
+        return TimerRestore(TimerUiState(), 0L, 0L, false, false)
     }
 
     val initialSeconds = prefs.getInt("initialSeconds", 45 * 60).coerceIn(1, 24 * 60 * 60)
@@ -73,8 +75,11 @@ private fun restoreTimerState(application: Application): TimerRestore {
     } else {
         savedRemaining
     }
-    val completionPending = wasRunning && savedEndAt > 0L && remaining == 0 &&
-        !prefs.getBoolean("isFinished", false)
+    val wasFinished = prefs.getBoolean("isFinished", false) && !wasRunning
+    val sessionLogId = prefs.getLong("sessionLogId", 0L)
+    val completionPending = wasRunning && savedEndAt > 0L && remaining == 0 && !wasFinished
+    val completionLogPending = wasFinished && sessionLogId != 0L &&
+        !prefs.getBoolean("completionLogged", true)
     val isRunning = wasRunning && savedEndAt > System.currentTimeMillis() && remaining > 0
 
     return TimerRestore(
@@ -84,11 +89,13 @@ private fun restoreTimerState(application: Application): TimerRestore {
             remainingSeconds = remaining,
             sessionLabel = prefs.getString("sessionLabel", "مطالعه پودمان تخصصی")
                 ?: "مطالعه پودمان تخصصی",
-            isFinished = prefs.getBoolean("isFinished", false) && !wasRunning,
+            isFinished = wasFinished,
             vibrateAlert = prefs.getBoolean("vibrateAlert", true)
         ),
         endAtMillis = if (isRunning) savedEndAt else 0L,
-        completionPending = completionPending
+        sessionLogId = sessionLogId,
+        completionPending = completionPending,
+        completionLogPending = completionLogPending
     )
 }
 
@@ -319,11 +326,13 @@ class KonkurViewModel(application: Application) : AndroidViewModel(application) 
     val timerState: StateFlow<TimerUiState> = _timerState.asStateFlow()
 
     private var timerEndAtMillis: Long = restoredTimer.endAtMillis
+    private var timerSessionLogId: Long = restoredTimer.sessionLogId
     private var timerJob: Job? = null
 
     init {
         when {
             restoredTimer.completionPending -> completeTimer()
+            restoredTimer.completionLogPending -> recordCompletedTimer(_timerState.value, timerSessionLogId, notifyUser = false)
             _timerState.value.isRunning -> launchTimerTicker()
         }
     }
@@ -338,12 +347,15 @@ class KonkurViewModel(application: Application) : AndroidViewModel(application) 
             .putBoolean("isFinished", state.isFinished)
             .putBoolean("vibrateAlert", state.vibrateAlert)
             .putLong("endAtMillis", if (state.isRunning) timerEndAtMillis else 0L)
+            .putLong("sessionLogId", timerSessionLogId)
             .apply()
     }
 
     fun setTimerPreset(minutes: Int, label: String) {
         timerJob?.cancel()
         timerEndAtMillis = 0L
+        timerSessionLogId = 0L
+        timerPrefs.edit().putBoolean("completionLogged", true).apply()
         val totalSec = minutes.coerceAtLeast(1) * 60
         _timerState.value = _timerState.value.copy(
             isRunning = false,
@@ -359,6 +371,10 @@ class KonkurViewModel(application: Application) : AndroidViewModel(application) 
         val current = _timerState.value
         if (current.isRunning || current.remainingSeconds <= 0) return
 
+        if (timerSessionLogId == 0L) {
+            timerSessionLogId = -System.currentTimeMillis().coerceAtLeast(1L)
+            timerPrefs.edit().putBoolean("completionLogged", false).apply()
+        }
         timerEndAtMillis = System.currentTimeMillis() + current.remainingSeconds * 1000L
         _timerState.value = current.copy(isRunning = true, isFinished = false)
         persistTimerState()
@@ -389,25 +405,37 @@ class KonkurViewModel(application: Application) : AndroidViewModel(application) 
 
         timerJob?.cancel()
         timerEndAtMillis = 0L
+        if (timerSessionLogId == 0L) {
+            timerSessionLogId = -System.currentTimeMillis().coerceAtLeast(1L)
+            timerPrefs.edit().putBoolean("completionLogged", false).apply()
+        }
         _timerState.value = current.copy(
             isRunning = false,
             remainingSeconds = 0,
             isFinished = true
         )
-        // Persist completion before logging, preventing duplicate logs after process death.
         persistTimerState()
-        triggerVibration()
-        triggerCompletionNotification()
+        recordCompletedTimer(current, timerSessionLogId, notifyUser = true)
+    }
 
-        val minutesCompleted = current.initialSeconds / 60
-        if (minutesCompleted > 0) {
-            viewModelScope.launch {
-                repository.logStudyTime(
-                    minutes = minutesCompleted,
-                    subjectTitle = current.sessionLabel,
-                    note = "ثبت خودکار با اتمام تایمر تمرکز"
-                )
-            }
+    private fun recordCompletedTimer(state: TimerUiState, logId: Long, notifyUser: Boolean) {
+        if (notifyUser) {
+            triggerVibration()
+            triggerCompletionNotification()
+        }
+        val minutesCompleted = state.initialSeconds / 60
+        if (minutesCompleted <= 0 || logId == 0L) {
+            timerPrefs.edit().putBoolean("completionLogged", true).apply()
+            return
+        }
+        viewModelScope.launch {
+            repository.logStudyTime(
+                minutes = minutesCompleted,
+                subjectTitle = state.sessionLabel,
+                note = "ثبت خودکار با اتمام تایمر تمرکز",
+                id = logId
+            )
+            timerPrefs.edit().putBoolean("completionLogged", true).apply()
         }
     }
 
@@ -430,6 +458,8 @@ class KonkurViewModel(application: Application) : AndroidViewModel(application) 
     fun resetTimer() {
         timerJob?.cancel()
         timerEndAtMillis = 0L
+        timerSessionLogId = 0L
+        timerPrefs.edit().putBoolean("completionLogged", true).apply()
         _timerState.value = _timerState.value.copy(
             isRunning = false,
             remainingSeconds = _timerState.value.initialSeconds,
