@@ -14,6 +14,7 @@ import com.example.data.model.StudyNoteEntity
 import com.example.data.model.WeeklyScoreEntity
 import com.example.data.model.WrongAnswerEntity
 import com.example.data.curriculum.ComputerCurriculumData
+import com.example.ui.viewmodel.KonkurViewModel
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.json.JSONObject
@@ -205,6 +206,29 @@ class ExampleRobolectricTest {
     } finally {
       database.close()
     }
+  }
+
+  @Test
+  fun `running focus timer resumes after viewmodel recreation`() {
+    val application = ApplicationProvider.getApplicationContext<android.app.Application>()
+    application.getSharedPreferences("timer_state", Context.MODE_PRIVATE)
+      .edit().clear().commit()
+
+    val firstViewModel = KonkurViewModel(application)
+    firstViewModel.setTimerPreset(2, "جلسه آزمایشی")
+    firstViewModel.startOrResumeTimer()
+
+    val recreatedViewModel = KonkurViewModel(application)
+    val restored = recreatedViewModel.timerState.value
+
+    assertTrue("A running timer should resume after recreation", restored.isRunning)
+    assertEquals("جلسه آزمایشی", restored.sessionLabel)
+    assertTrue("Remaining time should be restored from its deadline", restored.remainingSeconds in 1..120)
+
+    firstViewModel.pauseTimer()
+    recreatedViewModel.pauseTimer()
+    application.getSharedPreferences("timer_state", Context.MODE_PRIVATE)
+      .edit().clear().commit()
   }
 
   @Test
