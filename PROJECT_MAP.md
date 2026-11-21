@@ -198,8 +198,10 @@
 1. کاربر از `DashboardScreen` یا `TwoHourScheduleScreen` روی یک اسلات کلیک می‌کند
 2. `onNavigateToTimer(minutes, label)` صدا زده می‌شود → `viewModel.setTimerPreset(minutes, label)` و `selectTab(3)`
 3. در `TimerScreen` دکمه Play → `viewModel.startOrResumeTimer()`
-4. درون ViewModel یک `viewModelScope.launch { while(...) delay(1000) }` هر ثانیه `remainingSeconds` را کم می‌کند
-5. هنگام رسیدن به صفر:
+4. ViewModel زمان پایان تایمر را بر اساس ساعت سیستم محاسبه می‌کند و وضعیت جلسه (مدت، عنوان، مکث/اجرا و تنظیم ویبره) را در `SharedPreferences` نگه می‌دارد.
+5. با ساخت دوباره ViewModel یا بازشدن مجدد برنامه، زمان باقی‌مانده از روی زمان پایان محاسبه و تایمر در صورت لزوم از سر گرفته می‌شود.
+6. اگر زمان هنگام بسته‌بودن برنامه تمام شده باشد، تکمیل جلسه بازیابی و ثبت مطالعه با شناسه ثابت انجام می‌شود تا تلاش مجدد، رکورد تکراری نسازد.
+7. هنگام رسیدن به صفر:
    - `triggerVibration()` (روی API 31+ از `VibratorManager`)
    - `repository.logStudyTime(minutes = initialSeconds/60, subject = sessionLabel)`
 6. لاگ در `study_logs` ذخیره شده و در `AnalyticsAndNotesScreen` نمایش داده می‌شود
