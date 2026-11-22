@@ -16,6 +16,7 @@ import com.example.data.model.WeeklyScoreEntity
 import com.example.data.model.WrongAnswerEntity
 import com.example.data.curriculum.ComputerCurriculumData
 import com.example.ui.viewmodel.KonkurViewModel
+import com.example.ui.viewmodel.calculateStudyStreak
 import com.example.reminder.ReminderScheduler
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
@@ -266,6 +267,33 @@ class ExampleRobolectricTest {
     assertFalse(ReminderScheduler.isEnabled(context))
 
     prefs.edit().clear().commit()
+  }
+
+  @Test
+  fun `study streak counts yesterday when no session was logged today`() {
+    val now = java.util.Calendar.getInstance().apply {
+      set(java.util.Calendar.HOUR_OF_DAY, 12)
+      set(java.util.Calendar.MINUTE, 0)
+      set(java.util.Calendar.SECOND, 0)
+      set(java.util.Calendar.MILLISECOND, 0)
+    }.timeInMillis
+
+    fun logDaysAgo(daysAgo: Int): StudyLogEntity {
+      val timestamp = java.util.Calendar.getInstance().apply {
+        timeInMillis = now
+        add(java.util.Calendar.DAY_OF_YEAR, -daysAgo)
+      }.timeInMillis
+      return StudyLogEntity(
+        timestamp = timestamp,
+        durationMinutes = 30,
+        subjectTitle = "مطالعه آزمایشی"
+      )
+    }
+
+    assertEquals(0, calculateStudyStreak(emptyList(), now))
+    assertEquals(1, calculateStudyStreak(listOf(logDaysAgo(1)), now))
+    assertEquals(2, calculateStudyStreak(listOf(logDaysAgo(0), logDaysAgo(1)), now))
+    assertEquals(1, calculateStudyStreak(listOf(logDaysAgo(0), logDaysAgo(2)), now))
   }
 
   @Test
