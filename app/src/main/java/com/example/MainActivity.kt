@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -176,61 +175,36 @@ fun KonkurApp(viewModel: KonkurViewModel = viewModel()) {
                     )
                 },
                 bottomBar = {
-                    NavigationBar(
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        tonalElevation = 6.dp
-                    ) {
-                        // Keep the four most-used destinations in the bottom bar.
-                        // The remaining destinations stay available from the More menu.
-                        val primaryTabIndices = listOf(0, 1, 3, 4)
-                        primaryTabIndices.forEach { index ->
-                            val item = navItems[index]
-                            val isSelected = currentTab == index
-                            NavigationBarItem(
-                                selected = isSelected,
-                                onClick = { viewModel.selectTab(index) },
-                                icon = {
-                                    Icon(
-                                        imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
-                                        contentDescription = item.title,
-                                        modifier = Modifier.size(22.dp)
-                                    )
-                                },
-                                label = {
-                                    Text(
-                                        text = item.title,
-                                        fontSize = 10.sp,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                                    )
-                                },
-                                colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = PrimaryIndigo,
-                                    selectedTextColor = PrimaryIndigo,
-                                    indicatorColor = PrimaryIndigo.copy(alpha = 0.12f)
-                                ),
-                                modifier = Modifier.testTag(item.testTag)
-                            )
-                        }
-
+                    // Keep every NavigationBarItem as a direct child of NavigationBar.
+                    // The More popup is a sibling overlay so it cannot participate in
+                    // NavigationBar's item measurement or expand the bottom bar.
+                    Box {
                         val secondaryTabIndices = listOf(2, 5, 6, 7, 8, 9)
-                        val isMoreSelected = currentTab in secondaryTabIndices
-                        Box {
-                            Row(modifier = Modifier.fillMaxWidth()) {
+                        NavigationBar(
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            tonalElevation = 6.dp
+                        ) {
+                            // Keep the four most-used destinations in the bottom bar.
+                            // The remaining destinations stay available from the More menu.
+                            val primaryTabIndices = listOf(0, 1, 3, 4)
+                            primaryTabIndices.forEach { index ->
+                                val item = navItems[index]
+                                val isSelected = currentTab == index
                                 NavigationBarItem(
-                                    selected = isMoreSelected,
-                                    onClick = { moreMenuExpanded = true },
+                                    selected = isSelected,
+                                    onClick = { viewModel.selectTab(index) },
                                     icon = {
                                         Icon(
-                                            imageVector = Icons.Filled.MoreHoriz,
-                                            contentDescription = "بخش‌های بیشتر",
+                                            imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
+                                            contentDescription = item.title,
                                             modifier = Modifier.size(22.dp)
                                         )
                                     },
                                     label = {
                                         Text(
-                                            text = "بیشتر",
+                                            text = item.title,
                                             fontSize = 10.sp,
-                                            fontWeight = if (isMoreSelected) FontWeight.Bold else FontWeight.Normal
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                         )
                                     },
                                     colors = NavigationBarItemDefaults.colors(
@@ -238,30 +212,57 @@ fun KonkurApp(viewModel: KonkurViewModel = viewModel()) {
                                         selectedTextColor = PrimaryIndigo,
                                         indicatorColor = PrimaryIndigo.copy(alpha = 0.12f)
                                     ),
-                                    modifier = Modifier.testTag("nav_more")
+                                    modifier = Modifier.testTag(item.testTag)
                                 )
                             }
-                            DropdownMenu(
-                                expanded = moreMenuExpanded,
-                                onDismissRequest = { moreMenuExpanded = false }
-                            ) {
-                                secondaryTabIndices.forEach { index ->
-                                    val item = navItems[index]
-                                    DropdownMenuItem(
-                                        text = { Text(item.title) },
-                                        leadingIcon = {
-                                            Icon(
-                                                imageVector = if (currentTab == index) item.selectedIcon else item.unselectedIcon,
-                                                contentDescription = null
-                                            )
-                                        },
-                                        onClick = {
-                                            moreMenuExpanded = false
-                                            viewModel.selectTab(index)
-                                        },
-                                        modifier = Modifier.testTag(item.testTag)
+
+                            val isMoreSelected = currentTab in secondaryTabIndices
+                            NavigationBarItem(
+                                selected = isMoreSelected,
+                                onClick = { moreMenuExpanded = true },
+                                icon = {
+                                    Icon(
+                                        imageVector = Icons.Filled.MoreHoriz,
+                                        contentDescription = "بخش‌های بیشتر",
+                                        modifier = Modifier.size(22.dp)
                                     )
-                                }
+                                },
+                                label = {
+                                    Text(
+                                        text = "بیشتر",
+                                        fontSize = 10.sp,
+                                        fontWeight = if (isMoreSelected) FontWeight.Bold else FontWeight.Normal
+                                    )
+                                },
+                                colors = NavigationBarItemDefaults.colors(
+                                    selectedIconColor = PrimaryIndigo,
+                                    selectedTextColor = PrimaryIndigo,
+                                    indicatorColor = PrimaryIndigo.copy(alpha = 0.12f)
+                                ),
+                                modifier = Modifier.testTag("nav_more")
+                            )
+                        }
+
+                        DropdownMenu(
+                            expanded = moreMenuExpanded,
+                            onDismissRequest = { moreMenuExpanded = false }
+                        ) {
+                            secondaryTabIndices.forEach { index ->
+                                val item = navItems[index]
+                                DropdownMenuItem(
+                                    text = { Text(item.title) },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = if (currentTab == index) item.selectedIcon else item.unselectedIcon,
+                                            contentDescription = null
+                                        )
+                                    },
+                                    onClick = {
+                                        moreMenuExpanded = false
+                                        viewModel.selectTab(index)
+                                    },
+                                    modifier = Modifier.testTag(item.testTag)
+                                )
                             }
                         }
                     }
