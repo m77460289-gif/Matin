@@ -1,129 +1,111 @@
-# CONTRIBUTING — راهنمای تیم
+# راهنمای مشارکت در Konkur Computer
 
-سلام رفیق 👋 خوش آمدی به تیم **Konkur Computer**.
+خوش آمدید! این راهنما روش امن توسعه، تست و ارسال تغییرات را توضیح می‌دهد.
 
-## 📋 قبل از شروع (۵ دقیقه)
+## پیش‌نیازها
 
-۱. **Android Studio** نصب کن — `https://developer.android.com/studio`
-۲. **JDK 17** نصب باشه (Android Studio همراه خودش JBR دارد)
-۳. **Git** نصب باشه
-۴. ریپو را clone کن:
+- Android Studio سازگار با Android Gradle Plugin 9.1.1
+- Android SDK با API 36
+- JDK 21 برای هماهنگی با GitHub Actions
+- Git
+
+دریافت مخزن:
 
 ```bash
-git clone https://github.com/m77460289-gif/Matin.git
-cd Matin
+git clone https://github.com/m77460289-gif/kunkor.git
+cd kunkor
 ```
 
-۵. **`AGENTS.md` را بخوان** — همه چیز آنجاست (معماری، دیتابیس، ورکفلو، ترجیحات)
+## گردش کار Git
 
-## 🌿 ورکفلوی Git
+تغییرات را مستقیماً روی `main` انجام ندهید. برای هر کار شاخه جداگانه بسازید:
 
 ```bash
-git checkout -b feat/اسم-کوتاه
+git checkout main
+git pull origin main
+git checkout -b feat/short-description
+```
+
+پس از تکمیل تغییرات:
+
+```bash
 git add -A
-git commit -m "feat: توضیح انگلیسی"
-git push origin feat/اسم-کوتاه
+git commit -m "feat: describe the change"
+git push -u origin feat/short-description
 ```
 
-> **قواعد کامیت:**
-> - `feat:` برای قابلیت جدید
-> - `fix:` برای رفع باگ
-> - `docs:` برای مستندات
-> - `ci:` برای تغییرات ورکفلو
-> - `chore:` برای کارهای جانبی
-> - **انگلیسی بنویس**
+سپس Pull Request به شاخه `main` باز کنید. ادغام فقط پس از موفقیت تست‌ها و بیلد انجام شود.
 
-## 🏗️ قواعد کدنویسی
+پیشوندهای پیشنهادی commit:
+- `feat:` قابلیت جدید
+- `fix:` رفع اشکال
+- `docs:` مستندات
+- `test:` تست
+- `ci:` گردش کار ساخت
+- `chore:` نگه‌داری پروژه
 
-### UI (Compose)
-- **همه متن‌ها فارسی**
-- **RTL** فعال — از `start/end` به جای `left/right`
-- Material 3 + رنگ‌های پروژه (`PrimaryIndigo`, `SecondaryTeal`, `AccentGold`, `SuccessGreen`)
-- برای هر صفحه `testTag` بگذار (`nav_...`, `screen_...`, `btn_...`)
+## قواعد کدنویسی
 
-### دیتابیس
-- بعد از هر تغییر Entity:
-  1. `version` در `AppDatabase` را **۱ عدد** زیاد کن
-  2. `fallbackToDestructiveMigration()` قبلاً فعال است
-- هر `@Entity` جدید باید در لیست `entities` باشد
+### رابط کاربری
 
-### ViewModel
-- **همه** تغییرات دیتابیس در `viewModelScope.launch`
-- از `StateFlow` و `collectAsStateWithLifecycle` استفاده کن
-- برای هر عملیات، یک متد مستقل در `KonkurViewModel`
+- متن‌های رابط کاربری فارسی و چیدمان RTL باشند.
+- برای چیدمان از `start/end` استفاده کنید، نه `left/right`.
+- از Compose و Material 3 و رنگ‌های تعریف‌شده در `ui/theme` استفاده کنید.
+- برای کنترل‌ها و صفحه‌های مهم `testTag` مناسب بگذارید.
+- از تغییر indexهای ناوبری بدون به‌روزرسانی تمام ارجاعات خودداری کنید.
 
-## 🧪 تست
+### پایگاه داده
 
-### تست دستی (قبل از PR)
-- [ ] اپ اجرا می‌شود، صفحه سفید نمی‌ماند
-- [ ] ۷ تب همه باز می‌شوند
-- [ ] افزودن نکته → بستن اپ → باز کردن → نکته هست
-- [ ] تایمر کار می‌کند (۱ دقیقه تست کن)
+- Room فعلاً نسخه ۷ دارد و `fallbackToDestructiveMigration()` فعال است.
+- مخزن schema history و migrationهای نسخه‌های پیشین را نگه نمی‌دارد.
+- **صرفاً زیادکردن version یا تکیه به fallback راه‌حل مهاجرت امن نیست** و ممکن است داده محلی کاربران را پاک کند.
+- تغییر Entity/ستون/کلید نیازمند طراحی migration واقعی، حفظ داده‌های قبلی و تست مهاجرت است.
+- هر Entity جدید باید در `@Database(entities = ...)` ثبت شود.
+- هیچ‌گاه هشدار destructive migration را با حذف بی‌برنامه داده‌ها پنهان نکنید.
 
-### تست خودکار (CI)
-- هر `push` روی `main` → Actions خودکار بیلد و تست می‌کند
-- موفق: تیک سبز ✅ | ناموفق: لاگ را ببین و رفع کن
+### ViewModel و داده
 
-## 🚀 انتشار نسخه جدید
+- عملیات suspend دیتابیس را خارج از thread رابط کاربری و در Coroutine مناسب اجرا کنید.
+- وضعیت رابط را با StateFlow/Flow نگه دارید و در Compose با `collectAsStateWithLifecycle` بخوانید.
+- منطق تجاری را تا حد امکان از Composable جدا کنید.
+- پشتیبان‌گیری JSON نسخه ۲ همه هشت جدول را شامل می‌شود؛ تغییر مدل پشتیبان باید سازگاری نسخه‌های پیشین را حفظ کند.
 
-فقط **صاحب پروژه** تگ می‌زند. **دو نوع تگ داریم:**
+## تست و ساخت
 
-### تگ تستی (پیش‌ریلیز + APK دیباگ)
+پیش از بازکردن PR اجرا کنید:
+
 ```bash
-git tag v1.x.0-beta
-git push origin v1.x.0-beta
+./gradlew :app:testDebugUnitTest
+./gradlew :app:assembleDebug
 ```
-→ پیش‌ریلیز با APK **debug**، برای تست داخلی
 
-### تگ پایدار (ریلیز کامل + APK امضاشده)
-```bash
-git tag v1.x.0
-git push origin v1.x.0
-```
-→ ریلیز کامل با APK **امضاشده**، فقط بعد از تست کامل
+در ویندوز از `gradlew.bat` استفاده کنید. GitHub Actions همین تست‌ها و ساخت APK را برای Pull Request به `main` اجرا می‌کند.
 
-| پیشوند تگ | نتیجه |
-|---|---|
-| `-beta` / `-test` / `-pre` / `-rc` / `-debug` | پیش‌ریلیز + debug APK |
-| فقط `v1.2.3` (بدون پسوند) | ریلیز کامل + signed APK |
+چک‌لیست تست دستی:
+- [ ] همه ۱۰ مقصد ناوبری باز می‌شوند.
+- [ ] ثبت و حذف یادداشت درست کار می‌کند.
+- [ ] تایمر شروع، مکث، ادامه و بازنشانی می‌شود.
+- [ ] تایمر پس از بازسازی ViewModel زمان باقی‌مانده را بازیابی می‌کند.
+- [ ] خروجی و بازیابی JSON هشت جدول را حفظ می‌کند.
+- [ ] برای بازیابی اطلاعات، تأیید جایگزینی نمایش داده می‌شود.
 
-## 🔐 اسرار (خطرناک)
+## امنیت و فایل‌های خصوصی
 
-**هرگز push نکن:**
-- ❌ `release-keystore.jks`
-- ❌ `release-signing.properties`
-- ❌ `local.properties`
-- ❌ `*.env`
-- ❌ توکن یا رمز هر جایی
+هرگز این موارد یا هر نوع رمز و توکن را commit نکنید:
+- `release-keystore.jks`
+- `release-signing.properties`
+- `local.properties`
+- فایل‌های محیطی واقعی مانند `.env`
+- توکن‌ها و کلیدهای دسترسی
 
-اگر به اشتباه push کردی، **سریع به پدر خبر بده** تا کلید را عوض کنیم.
+فایل `debug.keystore.base64` مخصوص امضای Debug در CI است و نباید با کلید خصوصی انتشار اشتباه گرفته شود. در صورت افشای کلید انتشار، باید کلید و دسترسی‌های مرتبط فوراً تعویض شوند.
 
-## 🎨 سبک طراحی
+## انتشار
 
-- **رنگ اصلی:** `#4338CA` (PrimaryIndigo)
-- **رنگ ثانویه:** `#06B6D4` (SecondaryTeal)
-- **رنگ تاکیدی:** `#F59E0B` (AccentGold)
-- **رنگ موفقیت:** `#10B981` (SuccessGreen)
-- **گوشه‌ها:** `RoundedCornerShape(12-18.dp)`
-- **فاصله:** بین کارت‌ها ۱۲-۱۴dp، داخل کارت ۱۴dp
+انتشار فقط با تگ Git و توسط نگه‌دارنده پروژه انجام می‌شود:
 
-## 📂 ساختار پوشه (خلاصه)
+- تگ دارای پسوند مانند `v1.2.3-beta` یا `v1.2.3-rc`: پیش‌ریلیز با APK دیباگ
+- تگ تمیز مانند `v1.2.3`: ریلیز کامل با APK امضاشده؛ Secretهای امضای انتشار باید در GitHub تنظیم شده باشند.
+- Push به `main` و Pull Request فقط Artifact آزمایشی Debug می‌سازند و به‌معنای انتشار پایدار نیستند.
 
-- `data/curriculum/` — محتوای درسی
-- `data/plan/` — برنامه سالانه
-- `data/database/` — Room
-- `data/repository/` — لایه میانی
-- `ui/screens/` — هر صفحه یک فایل
-- `ui/viewmodel/` — مغز اپ
-
-> جزئیات کامل در **`AGENTS.md`** و **`PROJECT_MAP.md`**
-
-## 🆘 مشکل داری؟
-
-- **بیلد خطا:** `https://github.com/m77460289-gif/Matin/actions` → آخرین run → log
-- **روش کار:** `AGENTS.md` را دوباره بخوان
-- **ابهام:** از پدر بپرس، یا PR باز کن و کامنت بگذار
-
----
-
-**خوش آمدی به تیم 🚀**
+برای جزئیات معماری، `AGENTS.md` و `PROJECT_MAP.md` را ببینید.
