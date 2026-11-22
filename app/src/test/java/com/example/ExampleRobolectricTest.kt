@@ -27,6 +27,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
+import org.xmlpull.v1.XmlPullParser
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
@@ -308,4 +309,46 @@ class ExampleRobolectricTest {
       assertTrue(question.explanation.isNotBlank())
     }
   }
+  @Test
+  fun `timer runtime preferences are excluded from every Android backup mode`() {
+    val context = ApplicationProvider.getApplicationContext<Context>()
+
+    fun containsTimerStateExclusion(resourceId: Int, sectionName: String): Boolean {
+      val parser = context.resources.getXml(resourceId)
+      try {
+        var currentSection: String? = null
+        while (parser.next() != XmlPullParser.END_DOCUMENT) {
+          when (parser.eventType) {
+            XmlPullParser.START_TAG -> {
+              if (parser.name == "full-backup-content" ||
+                parser.name == "cloud-backup" ||
+                parser.name == "device-transfer"
+              ) {
+                currentSection = parser.name
+              }
+              if (
+                parser.name == "exclude" &&
+                currentSection == sectionName &&
+                parser.getAttributeValue(null, "domain") == "sharedpref" &&
+                parser.getAttributeValue(null, "path") == "timer_state.xml"
+              ) {
+                return true
+              }
+            }
+            XmlPullParser.END_TAG -> {
+              if (parser.name == currentSection) currentSection = null
+            }
+          }
+        }
+        return false
+      } finally {
+        parser.close()
+      }
+    }
+
+    assertTrue(containsTimerStateExclusion(R.xml.backup_rules, "full-backup-content"))
+    assertTrue(containsTimerStateExclusion(R.xml.data_extraction_rules, "cloud-backup"))
+    assertTrue(containsTimerStateExclusion(R.xml.data_extraction_rules, "device-transfer"))
+  }
+
 }
