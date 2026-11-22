@@ -99,6 +99,27 @@ private fun restoreTimerState(application: Application): TimerRestore {
     )
 }
 
+internal fun calculateStudyStreak(logs: List<StudyLogEntity>, nowMillis: Long): Int {
+    if (logs.isEmpty()) return 0
+
+    val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    val studyDays = logs.map { dateFormat.format(Date(it.timestamp)) }.toSet()
+    val cursor = java.util.Calendar.getInstance().apply { timeInMillis = nowMillis }
+
+    // A study session today starts the streak today. Otherwise, allow a streak
+    // to continue from yesterday, but do not skip yesterday while counting it.
+    if (!studyDays.contains(dateFormat.format(cursor.time))) {
+        cursor.add(java.util.Calendar.DAY_OF_YEAR, -1)
+    }
+
+    var streak = 0
+    while (studyDays.contains(dateFormat.format(cursor.time))) {
+        streak++
+        cursor.add(java.util.Calendar.DAY_OF_YEAR, -1)
+    }
+    return streak
+}
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class KonkurViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -293,33 +314,9 @@ class KonkurViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     // Streak — consecutive days with at least one study log
-    val studyStreak: StateFlow<Int> = allLogs.map { logs ->
-        if (logs.isEmpty()) 0 else {
-            val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-            val days = logs.map { sdf.format(Date(it.timestamp)) }.toSet()
-            var streak = 0
-            val cal = java.util.Calendar.getInstance()
-            while (true) {
-                val key = sdf.format(cal.time)
-                if (days.contains(key)) {
-                    streak++
-                    cal.add(java.util.Calendar.DAY_OF_YEAR, -1)
-                } else {
-                    // Allow today to be missing but keep streak from yesterday
-                    if (streak == 0) {
-                        cal.add(java.util.Calendar.DAY_OF_YEAR, -1)
-                        val yesterdayKey = sdf.format(cal.time)
-                        if (days.contains(yesterdayKey)) {
-                            cal.add(java.util.Calendar.DAY_OF_YEAR, -1)
-                            continue
-                        }
-                    }
-                    break
-                }
-            }
-            streak
-        }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+    val studyStreak: StateFlow<Int> = allLogs
+        .map { logs -> calculateStudyStreak(logs, System.currentTimeMillis()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
     // Timer State — persisted so an app/process restart does not reset a running session.
     private val _timerState = MutableStateFlow(restoredTimer.state)
