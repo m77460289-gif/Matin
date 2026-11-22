@@ -13,6 +13,12 @@ import androidx.core.app.NotificationCompat
  */
 class ReminderReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
+        // Do not show or re-schedule reminders after the user has opted out.
+        if (!ReminderScheduler.isEnabled(context)) {
+            ReminderScheduler.cancel(context)
+            return
+        }
+
         val channelId = CHANNEL_ID
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
 
