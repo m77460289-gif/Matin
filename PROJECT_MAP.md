@@ -1,248 +1,134 @@
-# PROJECT MAP — Konkur Computer
+# نقشه فنی پروژه Konkur Computer
 
-> نقشه کامل پروژه: هر فایل چه کاری می‌کند و چطور به بقیه وصل است.
+این سند وضعیت فعلی مخزن را توصیف می‌کند؛ در صورت اختلاف، کد شاخه `main` منبع نهایی حقیقت است.
 
----
+## ۱. معرفی
 
-## 1. نمای کلی (خلاصه یک‌خطی)
+`Konkur Computer` یک اپ اندروید تک‌ماژولی با Kotlin و Jetpack Compose است. داده‌های شخصی مطالعه در Room ذخیره می‌شوند و وضعیت صفحه‌ها از طریق یک ViewModel مشترک مدیریت می‌شود. اپ برای استفاده محلی و تک‌کاربره طراحی شده است.
 
-`Konkur Computer` یک اپلیکیشن اندروید تک‌ماژولی (`:app`) است که:
+مشخصات فعلی:
+- Application ID: `com.aistudio.konkurcomputer.vtfplq`
+- نسخه برنامه: `1.12.1` (versionCode 13)
+- minSdk: 24، targetSdk: 36، compileSdk: 36
+- Kotlin: 2.2.10، AGP: 9.1.1، Gradle Wrapper: 9.3.1
+- Room: 2.7.0، JDK ساخت CI: 21
 
-- داده‌های مطالعه کاربر را در **Room** ذخیره می‌کند
-- یک **ViewModel** مشترک (`KonkurViewModel`) وضعیت همه صفحه‌ها را مدیریت می‌کند
-- داده‌های ثابت (کتاب‌ها، پودمان‌ها، برنامه هفتگی، سوالات آزمون) در یک **Singleton** کاتلینی (`ComputerCurriculumData`) نگه‌داری می‌شوند
-- ۶ صفحه Compose با ناوبری ساده بر اساس ایندکس تب
-
----
-
-## 2. جریان داده (Data Flow)
+## ۲. جریان داده
 
 ```
-[User tap] → Compose Screen → viewModel.fn()
-   → KonkurViewModel (viewModelScope.launch)
-      → StudyRepository
-         → StudyDao (Room)
-            → SQLite (konkur_computer_db)
-   ↑ Flow بازگشتی → StateFlow → Compose (collectAsStateWithLifecycle)
+Compose Screen
+    ↓ فراخوانی عملیات
+KonkurViewModel
+    ↓
+StudyRepository
+    ↓
+StudyDao
+    ↓
+Room / SQLite
+    ↑
+Flow → StateFlow → collectAsStateWithLifecycle
 ```
 
-- **Static data:** از `ComputerCurriculumData` مستقیم خوانده می‌شود (بدون DB).
-- **User data:** در ۴ جدول Room ذخیره می‌شود.
+داده‌های آموزشی ثابت مستقیماً از `ComputerCurriculumData` و برنامه سالانه از `AnnualPlanData` خوانده می‌شوند.
 
----
+## ۳. پیمایش و صفحه‌ها
 
-## 3. درخت فایل‌ها + نقش هر فایل
+ناوبری ساده و مبتنی بر index در `MainActivity.kt` است و Navigation Compose استفاده نمی‌شود.
 
-### ریشه پروژه (Root)
+| index | عنوان | فایل |
+|---:|---|---|
+| 0 | داشبورد | `ui/screens/DashboardScreen.kt` |
+| 1 | برنامه ۲ ساعت | `ui/screens/TwoHourScheduleScreen.kt` |
+| 2 | کتاب‌ها و تغییرات | `ui/screens/BooksAndChangesScreen.kt` |
+| 3 | تایمر تمرکز | `ui/screens/TimerScreen.kt` |
+| 4 | آزمونک | `ui/screens/QuizScreen.kt` |
+| 5 | آمار و نکات | `ui/screens/AnalyticsAndNotesScreen.kt` |
+| 6 | برنامه تا کنکور | `ui/screens/AnnualPlanScreen.kt` |
+| 7 | مرور امروز | `ui/screens/LeitnerScreen.kt` |
+| 8 | آزمون شبیه‌ساز | `ui/screens/QuizSimulatorScreen.kt` |
+| 9 | پنل والد | `ui/screens/ParentReportScreen.kt` |
 
-| فایل | نقش |
+در گوشی، مقصدهای ۰، ۱، ۳ و ۴ در Bottom Navigation هستند و مقصدهای ۲، ۵، ۶، ۷، ۸ و ۹ از منوی «بیشتر» باز می‌شوند. در تبلت هر ده مقصد در NavigationRail دیده می‌شوند.
+
+## ۴. ساختار کد
+
+| مسیر | مسئولیت |
 |---|---|
-| `build.gradle.kts` | پلاگین‌های سراسری (android, kotlin, ksp, secrets, google-services) |
-| `settings.gradle.kts` | نام پروژه (`KonkurComputer`) + include `:app` + repositories |
-| `gradle.properties` | تنظیمات Gradle/JVM |
-| `gradle/libs.versions.toml` | کاتالوگ نسخه‌ها (Version Catalog) |
-| `gradle/wrapper/gradle-wrapper.properties` | نسخه Gradle Wrapper |
-| `debug.keystore.base64` | کی‌استور دیباگ به صورت Base64 (برای CI) |
-| `metadata.json` | متادیتای پروژه (نام فارسی، توضیح، قابلیت‌ها) |
-| `server.py` | وب‌سرور لندینگ (`http.server`) که صفحه دانلود APK/ZIP را می‌دهد |
-| `.env.example` | نمونه متغیرهای محیطی (Secrets Gradle Plugin) |
-| `.gitignore` | فایل‌های Ignore شده |
-| `.github/workflows/release.yml` | CI برای ساخت Release |
-| `README.md` | معرفی و راهنمای اجرا |
-| `PROJECT_MAP.md` | همین فایل (نقشه پروژه) |
+| `MainActivity.kt` | ورودی برنامه، RTL، پیمایش و مسیریابی |
+| `data/model/Models.kt` | هشت Entity دیتابیس و مدل‌های دامنه |
+| `data/database/AppDatabase.kt` | تعریف Room، نسخه ۷ |
+| `data/database/StudyDao.kt` | عملیات و پرس‌وجوهای دیتابیس |
+| `data/repository/StudyRepository.kt` | واسط میان ViewModel و DAO |
+| `data/curriculum/ComputerCurriculumData.kt` | ۱۴ کتاب، ۶۸ پودمان، برنامه هفت‌روزه و سوالات آزمونک |
+| `data/plan/AnnualPlanData.kt` | پنج فاز برنامه سالانه و قواعد چک‌پوینت |
+| `data/backup/BackupManager.kt` | خروجی و بازیابی JSON نسخه‌بندی‌شده |
+| `ui/viewmodel/KonkurViewModel.kt` | StateFlowها و منطق مطالعه، تایمر، مرور و گزارش |
+| `reminder/ReminderScheduler.kt` | زمان‌بندی AlarmManager |
+| `reminder/ReminderReceiver.kt` | ساخت اعلان روزانه |
+| `reminder/BootReceiver.kt` | برنامه‌ریزی دوباره یادآور بعد از راه‌اندازی دستگاه |
 
-### ماژول `app/`
+## ۵. پایگاه داده
 
-| فایل | نقش |
-|---|---|
-| `app/build.gradle.kts` | تنظیمات ماژول: `namespace = com.example`, `applicationId = com.aistudio.konkurcomputer.vtfplq`, `minSdk 24`, `targetSdk 36`, signingConfigs، وابستگی‌های Compose + Room + Firebase AI |
-| `app/proguard-rules.pro` | قوانین ProGuard |
-| `app/src/main/AndroidManifest.xml` | Manifest اپ |
+Room نسخه ۷ و هشت جدول دارد:
 
-### کد کاتلین (`app/src/main/java/com/example/`)
+| Entity | جدول | کاربرد |
+|---|---|---|
+| `StudyLogEntity` | `study_logs` | مدت و عنوان جلسات مطالعه |
+| `PoodmanProgressEntity` | `poodman_progress` | وضعیت مطالعه/مرور/تست و منابع هر پودمان |
+| `StudyNoteEntity` | `study_notes` | یادداشت شخصی |
+| `DailySlotStatusEntity` | `daily_slot_status` | تکمیل اسلات برنامه هر روز |
+| `CheckInEntity` | `weekly_checkins` | گزارش‌های پیگیری |
+| `LeitnerCardEntity` | `leitner_cards` | وضعیت کارت مرور فاصله‌دار |
+| `WrongAnswerEntity` | `wrong_answers` | شمارش و وضعیت سوالات غلط |
+| `WeeklyScoreEntity` | `weekly_scores` | درصد آزمون و روند نمره |
 
-#### ورودی و Navigation
-| فایل | نقش |
-|---|---|
-| `MainActivity.kt` | `ComponentActivity` + `setContent` + `KonkurApp()` + `ScreenContent()`. شامل ناوبری گوشی (BottomNavigation) و تبلت (`NavigationRail`) و RTL provider |
-| `ui/viewmodel/KonkurViewModel.kt` | مغز اپ: `StateFlow` برای تب، پایه، روز، لاگ‌ها، پیشرفت، تایمر، نکات + توابع `startOrResumeTimer`, `pauseTimer`, `resetTimer`, `toggleSlot`, `togglePoodmanStatus`, `logStudyTime`, `addNote`, `deleteNote` |
+### نکته مهاجرت
 
-#### لایه داده
-| فایل | نقش |
-|---|---|
-| `data/model/Models.kt` | ۴ `@Entity` (`StudyLogEntity`, `PoodmanProgressEntity`, `StudyNoteEntity`, `DailySlotStatusEntity`) + ۶ Domain Model (`GradeLevel`, `PoodmanInfo`, `BookInfo`, `DailySlot`, `DaySchedulePlan`, `QuizQuestion`) |
-| `data/database/AppDatabase.kt` | Room DB singleton با نام `konkur_computer_db` و نسخه ۱ |
-| `data/database/StudyDao.kt` | کوئری‌های CRUD: مطالعه‌ها (insert/delete/sum)، پیشرفت پودمان‌ها (get/save)، وضعیت اسلات‌های روزانه (get/set)، نکات (get/insert/delete) |
-| `data/repository/StudyRepository.kt` | پوشش DAO و تبدیل نتایج به `Flow` + توابع میانجی |
-| `data/curriculum/ComputerCurriculumData.kt` | داده ثابت: `textbookChangesGeneralNotice`, `books` (۷ کتاب: ۳ دهم + ۲ یازدهم + ۲ دوازدهم هر کدام ۵ پودمان), `weeklyPlan` (برنامه ۷ روزه), `sampleQuestions` (سوالات آزمونک) |
+`AppDatabase.kt` از `fallbackToDestructiveMigration()` استفاده می‌کند و `exportSchema = false` است. مخزن schema history و migrationهای واقعی نسخه‌های قبلی را نگه نمی‌دارد. بنابراین صرفاً افزایش version ممکن است داده محلی را حذف کند؛ تغییر schema تا زمان طراحی و آزمایش migration امن نباید انجام شود.
 
-#### صفحه‌ها (UI)
-| فایل | نقش |
-|---|---|
-| `ui/screens/DashboardScreen.kt` | خلاصه وضعیت: درصد پیشرفت، دکمه‌های میان‌بر، پیشنهاد روز |
-| `ui/screens/TwoHourScheduleScreen.kt` | برنامه ۲ ساعته هفتگی با ۵ اسلات در هر روز + چک‌لیست با `toggleSlot` + دکمه رفتن به تایمر |
-| `ui/screens/BooksAndChangesScreen.kt` | تب پایه‌ها (`ScrollableTabRow`) → کارت هر کتاب → تحلیل تغییرات + ۵ پودمان با ۳ چک‌باکس (مطالعه / مرور / تست) |
-| `ui/screens/TimerScreen.kt` | نمایش شمارش معکوس، Play/Pause/Reset، PresetChip ها، دیالوگ ثبت دستی، بنر اتمام و ذخیره خودکار در `study_logs` |
-| `ui/screens/QuizScreen.kt` | نمایش سوال، گزینه‌ها با بازخورد درست/غلط، تحلیل تشریحی + نکته طلایی، ناوبری سوال بعد/قبل + امتیاز |
-| `ui/screens/AnalyticsAndNotesScreen.kt` | نمودار پیشرفت کلی (LinearProgress)، شمارش مطالعه/مرور/تست، افزودن و حذف نکات، تاریخچه لاگ‌ها |
+## ۶. پشتیبان‌گیری
 
-#### برنامه سالانه (جدید)
-| فایل | نقش |
-|---|---|
-| `data/plan/AnnualPlanData.kt` | ۵ فاز برنامه تا کنکور (آذر→کنکور) + قواعد چک‌پوینت یکشنبه/پنجشنبه + وضعیت شروع |
-| `ui/screens/AnnualPlanScreen.kt` | نمایش فازها + دیالوگ ثبت چک‌پوینت هفتگی + لیست چک‌پوینت‌های ذخیره‌شده |
-| `CheckInEntity` (در `Models.kt`) | جدول `weekly_checkins` برای ذخیره چک‌پوینت‌ها در Room |
+`BackupManager` فرمت JSON نسخه ۲ را برای همه هشت جدول ایجاد می‌کند. خروجی از snapshot تراکنشی ساخته می‌شود؛ شناسه رکوردهای خودکار حفظ می‌شود و بازیابی پس از اعتبارسنجی کل داده‌ها در تراکنش انجام می‌گیرد.
 
-#### جعبه لایتنر (مرور فاصله‌دار)
-| فایل | نقش |
-|---|---|
-| `LeitnerCardEntity` (در `Models.kt`) | جدول `leitner_cards` — هر پودمان با `boxLevel` و `nextReviewAt` |
-| `ui/screens/LeitnerScreen.kt` | تب «مرور امروز»: کارت‌های سررسید، دکمه «یادم بود / فراموش کردم»، لیست کل کارت‌ها |
-| `KonkurViewModel.reviewLeitnerCard()` | پاسخ درست → جعبه بعدی؛ پاسخ غلط → برگشت به جعبه ۱ |
+فایل نسخه ۱ نیز پذیرفته می‌شود. چون آن نسخه `daily_slot_status` و `weekly_checkins` را نداشت، این دو جدول هنگام بازیابی نسخه ۱ دست‌نخورده باقی می‌مانند. رابط کاربری پیش از جایگزینی داده‌ها تأیید می‌گیرد.
 
-#### دفترچه اشتباهات (Error Notebook)
-| فایل | نقش |
-|---|---|
-| `WrongAnswerEntity` (در `Models.kt`) | جدول `wrong_answers` — سوال غلط با `timesWrong` و `lastWrongAt` |
-| `QuizScreen` (بازنویسی) | ذخیره خودکار سوال غلط + دکمه «آزمون مجدد از غلط‌ها» |
-| `KonkurViewModel.recordWrongAnswer()` | افزایش شمارنده غلط + reset `isMastered` |
+مسیر UI پشتیبان‌گیری: `AnalyticsAndNotesScreen.kt` و بخش `BackupSection`. انتخاب فایل با `CreateDocument` و `OpenDocument` انجام می‌شود. JSON مسیرها و لینک‌های منابع را ذخیره می‌کند، نه خود فایل‌های PDF یا ویدئو را.
 
-#### آزمون شبیه‌ساز زمان‌دار
-| فایل | نقش |
-|---|---|
-| `ui/screens/QuizSimulatorScreen.kt` | ۲۵ سوال / ۳۰ دقیقه با تایمر واقعی، زمان هر سوال، درصد و تحلیل ضعیف‌ترین پودمان |
-| `MainActivity` (index 8) | تب «آزمون شبیه‌ساز» + دکمه میان‌بر در `QuizScreen` |
+## ۷. تایمر تمرکز
 
-#### ثبت نمره آزمون‌های هفتگی (روند پیشرفت)
-| فایل | نقش |
-|---|---|
-| `WeeklyScoreEntity` (در `Models.kt`) | جدول `weekly_scores` — هفته، درصد نمره، عنوان آزمون |
-| `AnalyticsAndNotesScreen` → `WeeklyScoreTrendSection` | نمودار خطی (Canvas) + آمار آخرین/بهترین/تغییر |
-| `KonkurViewModel.addWeeklyScore()` | ثبت نمره هفتگی برای تحلیل روند |
+`TimerScreen` وضعیت را از `KonkurViewModel.timerState` می‌گیرد. منطق تایمر در ViewModel است:
 
-#### کتابخانه منابع (Resource Links)
-| فایل | نقش |
-|---|---|
-| `PoodmanProgressEntity.videoUrl/pdfPath/testUrl` | لینک واقعی فیلم/جزوه/تست هر پودمان (DB v7) |
-| `BooksAndChangesScreen` → `ResourceRow` | ردیف منبع با چک‌باکس + دکمه «پخش» برای باز کردن لینک |
-| `EditTarget` + دیالوگ | فرم ویرایش لینک‌های فیلم/جزوه/تست هر پودمان |
+- زمان پایان مطلق و جزئیات جلسه در SharedPreferences با نام `timer_state` ذخیره می‌شوند.
+- با ساخت دوباره ViewModel یا بازگشت به برنامه، زمان باقی‌مانده بر اساس زمان پایان محاسبه می‌شود.
+- توقف، ادامه و بازنشانی وضعیت ذخیره‌شده را به‌روزرسانی می‌کنند.
+- اگر زمان در زمان بسته‌بودن برنامه گذشته باشد، پایان جلسه هنگام بازگشت ViewModel بازیابی می‌شود.
+- لاگ پایان جلسه شناسه ثابت دارد تا retry همان رکورد را جایگزین کند و لاگ تکراری نسازد.
 
-#### کارت «امروز چه کاری باید بکنم؟»
-| فایل | نقش |
-|---|---|
-| `DashboardScreen` → Today Card | کارت بالای داشبورد با پودمان بعدی + مرور لایتنر + ۵ تست |
-| `TodayChip` | چیپ کوچک نمایش هر آیتم برنامه امروز |
-| دکمه «شروع» | مستقیم `onNavigateToTimer()` را صدا می‌زند |
+تایمر سرویس foreground ندارد؛ بنابراین اعلان دقیق در لحظه پایان، زمانی که فرایند برنامه بسته است، تضمین نشده است.
 
-#### یادآور روزانه + استریک
-| فایل | نقش |
-|---|---|
-| `reminder/ReminderScheduler.kt` | زمان‌بندی روزانه ۱۷:۰۰ با `AlarmManager` |
-| `reminder/ReminderReceiver.kt` | ساخت اعلان «۲ ساعت مطالعه امروز شروع شود؟» |
-| `reminder/BootReceiver.kt` | باززمان‌بندی پس از ری‌استارت |
-| `KonkurViewModel.studyStreak` | استریک از `study_logs` (روزهای پیوسته) |
-| `DashboardScreen` Streak Card | کارت 🔥 نمایش استریک |
-| `AnalyticsAndNotesScreen` | سوییچ فعال/غیرفعال یادآور |
+## ۸. یادآور روزانه
 
-#### پنل والد (خلاصه هفتگی)
-| فایل | نقش |
-|---|---|
-| `ui/screens/ParentReportScreen.kt` | خلاصه هفته + پودمان‌های عقب‌مانده + دکمه اشتراک‌گذاری |
-| `MainActivity` (index 9) | تب «پنل والد» |
-| `buildReportText()` | ساخت متن گزارش و اشتراک با `Intent.ACTION_SEND` |
+یادآور پیش‌فرض ساعت ۱۷:۰۰ محلی است. `ReminderScheduler` از AlarmManager استفاده می‌کند، `ReminderReceiver` اعلان را نشان می‌دهد و زمان‌بندی روز بعد را انجام می‌دهد. `BootReceiver` پس از دریافت `BOOT_COMPLETED` یادآور را دوباره تنظیم می‌کند. وضعیت سوییچ در SharedPreferences با نام `app_prefs` و کلید `daily_reminder_enabled` نگه‌داری می‌شود.
 
-#### پشتیبان‌گیری و بازیابی (JSON)
-| فایل | نقش |
-|---|---|
-| `data/backup/BackupManager.kt` | خروجی/ورودی JSON کامل ۶ جدول |
-| `AnalyticsAndNotesScreen` → `BackupSection` | دکمه‌های خروجی/ورودی با File Picker سیستم |
-| `KonkurViewModel.exportBackupJson/importBackupJson` | میانجی UI ← BackupManager |
+## ۹. آزمون و ساخت
 
-#### تم
-| فایل | نقش |
-|---|---|
-| `ui/theme/Color.kt` | رنگ‌های برند: `PrimaryIndigo`, `PrimaryLightIndigo`, `SecondaryTeal`, `AccentGold`, `SuccessGreen` |
-| `ui/theme/Theme.kt` | `MyApplicationTheme` (Material3 colorScheme) |
-| `ui/theme/Type.kt` | Typography |
+تست‌ها در:
+- `app/src/test/java/com/example/ExampleUnitTest.kt`
+- `app/src/test/java/com/example/ExampleRobolectricTest.kt`
+- `app/src/androidTest/java/com/example/ExampleInstrumentedTest.kt`
 
-### منابع (`app/src/main/res/`)
+فرمان‌های اصلی:
 
-| فایل | نقش |
-|---|---|
-| `values/strings.xml` | نام اپ: «کنکور کامپیوتر» |
-| `values/colors.xml` | رنگ‌های پایه |
-| `values/themes.xml` | تم اندروید |
-| `drawable/*` | آیکون‌ها و تصویر Hero |
-| `mipmap-*/*` | آیکون لانچر در تراکم‌های مختلف |
-| `xml/backup_rules.xml`, `xml/data_extraction_rules.xml` | قوانین Backup |
-
-### مستندات ریشه (جدید)
-| فایل | نقش |
-|---|---|
-| `CHECKIN_LOG.md` | گزارش هفتگی یکشنبه/پنجشنبه (چه خواندند، چه تست زدند، کمبود منابع) — منبع تنظیم برنامه هفته بعد |
-| `README.md` | معرفی پروژه |
-| `PROJECT_MAP.md` | همین فایل (نقشه کامل) |
-
-### تست‌ها
-
-| فایل | نقش |
-|---|---|
-| `test/java/.../ExampleUnitTest.kt` | تست واحد نمونه |
-| `test/java/.../ExampleRobolectricTest.kt` | تست Robolectric نمونه |
-| `androidTest/java/.../ExampleInstrumentedTest.kt` | تست ابزاری نمونه |
-
----
-
-## 4. جریان تایمر (مهم‌ترین منطق)
-
-1. کاربر از `DashboardScreen` یا `TwoHourScheduleScreen` روی یک اسلات کلیک می‌کند
-2. `onNavigateToTimer(minutes, label)` صدا زده می‌شود → `viewModel.setTimerPreset(minutes, label)` و `selectTab(3)`
-3. در `TimerScreen` دکمه Play → `viewModel.startOrResumeTimer()`
-4. ViewModel زمان پایان تایمر را بر اساس ساعت سیستم محاسبه می‌کند و وضعیت جلسه (مدت، عنوان، مکث/اجرا و تنظیم ویبره) را در `SharedPreferences` نگه می‌دارد.
-5. با ساخت دوباره ViewModel یا بازشدن مجدد برنامه، زمان باقی‌مانده از روی زمان پایان محاسبه و تایمر در صورت لزوم از سر گرفته می‌شود.
-6. اگر زمان هنگام بسته‌بودن برنامه تمام شده باشد، تکمیل جلسه بازیابی و ثبت مطالعه با شناسه ثابت انجام می‌شود تا تلاش مجدد، رکورد تکراری نسازد.
-7. هنگام رسیدن به صفر:
-   - `triggerVibration()` (روی API 31+ از `VibratorManager`)
-   - `repository.logStudyTime(minutes = initialSeconds/60, subject = sessionLabel)`
-8. لاگ در `study_logs` ذخیره شده و در `AnalyticsAndNotesScreen` نمایش داده می‌شود
-
----
-
-## 5. جریان پیشرفت پودمان
-
-- کاربر در `BooksAndChangesScreen` چک‌باکس‌ها را می‌زند
-- `togglePoodmanStatus(bookId, poodmanIndex, studied/reviewed/tested)`
-- ViewModel با `existing` مقایسه و رکورد جدید `PoodmanProgressEntity` را `savePoodmanProgress` می‌کند
-- `AnalyticsAndNotesScreen` روی `allProgress` شمارش انجام می‌دهد
-
----
-
-## 6. نکات مهم برای توسعه‌دهنده بعدی
-
-- **کتاب‌های اپ:** الان ۱۲ کتاب (۳ دهم تخصصی + کارگاه نوآوری + ۲ یازدهم تخصصی + فناوری نوین + ۳ دوازدهم تخصصی + ریاضی + ۳ عمومی)
-- **برنامه سالانه:** `AnnualPlanData.phases` ۵ فاز دارد؛ برای تغییر آن فقط این فایل را ویرایش کن
-- **چک‌پوینت:** هر یکشنبه/پنجشنبه کاربر گزارش می‌دهد؛ در `CHECKIN_LOG.md` ثبت کن و برنامه هفته بعد را در همان فایل یا در `weeklyPlan` تنظیم کن
-- ناوبری **بدون `Navigation-Compose`** است؛ فقط یک `Int` در `_currentTab`. برای اضافه کردن صفحه جدید:
-  1. یک `NavTabItem` به `navItems` در `MainActivity.kt` اضافه کن
-  2. در `ScreenContent()` یک `when` جدید بنویس
-- برای اضافه کردن کتاب جدید: فقط به `ComputerCurriculumData.books` یک `BookInfo` اضافه کن (۵ پودمان الزامی است)
-- برای اضافه کردن سوال آزمونک: به `ComputerCurriculumData.sampleQuestions` اضافه کن
-- **توجه:** `totalPoodmans` در `AnalyticsAndNotesScreen` به صورت Hard-coded روی `35` است (۷ کتاب × ۵ پودمان) — اگر کتاب اضافه شد این عدد باید به‌روز شود
-- `server.py` فقط برای توزیع APK/ZIP است؛ اپلیکیشن به آن وابسته نیست
-- بخش Firebase AI در `app/build.gradle.kts` تعریف شده اما در کد استفاده نمی‌شود (برای آینده)
-
----
-
-## 7. خلاصه نقشه در یک نگاه
-
+```bash
+./gradlew :app:testDebugUnitTest
+./gradlew :app:assembleDebug
 ```
-MainActivity
-   └── KonkurViewModel ── StudyRepository ── StudyDao ── Room DB
-              │
-              └── StateFlow<Tab>
-                     └── ScreenContent → 6 Screens
 
-ComputerCurriculumData (static: books, poodmans, weeklyPlan, questions)
-        ↑
-   همه صفحه‌ها از آن می‌خوانند
-```
+GitHub Actions در `.github/workflows/release.yml` روی Pull Request به `main` تست و APK دیباگ می‌سازد. Push به `main` نیز تست و APK دیباگ را به‌عنوان Artifact ذخیره می‌کند. تگ‌های آزمایشی پیش‌ریلیز و تگ نسخه تمیز ریلیز کامل را ایجاد می‌کنند؛ ریلیز کامل به Secretهای امضا نیاز دارد.
+
+## ۱۰. محدودیت‌های شناخته‌شده
+
+- Room fallback فعلاً destructive است و migration واقعی در مخزن وجود ندارد.
+- تایمر در زمان بسته بودن برنامه سرویس foreground ندارد.
+- پشتیبان JSON محتوای فایل‌های خارجی را کپی نمی‌کند.
+- داده‌های کتاب و آزمون ثابت در کد هستند و تغییر آن‌ها نیازمند بازبینی محتوای آموزشی است.
