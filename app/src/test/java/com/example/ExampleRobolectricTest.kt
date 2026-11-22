@@ -16,10 +16,12 @@ import com.example.data.model.WeeklyScoreEntity
 import com.example.data.model.WrongAnswerEntity
 import com.example.data.curriculum.ComputerCurriculumData
 import com.example.ui.viewmodel.KonkurViewModel
+import com.example.reminder.ReminderScheduler
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
@@ -250,6 +252,20 @@ class ExampleRobolectricTest {
     } finally {
       database.close()
     }
+  }
+
+  @Test
+  fun `daily reminder preference defaults to enabled and respects opt out`() {
+    val context = ApplicationProvider.getApplicationContext<Context>()
+    val prefs = context.getSharedPreferences(ReminderScheduler.PREFERENCES_NAME, Context.MODE_PRIVATE)
+    prefs.edit().clear().commit()
+
+    assertTrue(ReminderScheduler.isEnabled(context))
+
+    prefs.edit().putBoolean(ReminderScheduler.ENABLED_PREFERENCE, false).commit()
+    assertFalse(ReminderScheduler.isEnabled(context))
+
+    prefs.edit().clear().commit()
   }
 
   @Test
