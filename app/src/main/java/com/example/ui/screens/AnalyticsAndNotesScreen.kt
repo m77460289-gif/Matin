@@ -85,8 +85,8 @@ fun AnalyticsAndNotesScreen(viewModel: KonkurViewModel) {
     var showAddScoreDialog by remember { mutableStateOf(false) }
     var backupMsg by remember { mutableStateOf<String?>(null) }
     val ctx = androidx.compose.ui.platform.LocalContext.current
-    val prefs = remember { ctx.getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE) }
-    var reminderOn by remember { mutableStateOf(prefs.getBoolean("daily_reminder_enabled", true)) }
+    val prefs = remember { ctx.getSharedPreferences(com.example.reminder.ReminderScheduler.PREFERENCES_NAME, android.content.Context.MODE_PRIVATE) }
+    var reminderOn by remember { mutableStateOf(prefs.getBoolean(com.example.reminder.ReminderScheduler.ENABLED_PREFERENCE, true)) }
     val weeklyScores by viewModel.allWeeklyScores.collectAsStateWithLifecycle()
 
     val studiedCount = allProgress.count { it.isStudied }
@@ -220,7 +220,7 @@ fun AnalyticsAndNotesScreen(viewModel: KonkurViewModel) {
                         checked = reminderOn,
                         onCheckedChange = { enabled ->
                             reminderOn = enabled
-                            prefs.edit().putBoolean("daily_reminder_enabled", enabled).apply()
+                            prefs.edit().putBoolean(com.example.reminder.ReminderScheduler.ENABLED_PREFERENCE, enabled).apply()
                             if (enabled) {
                                 com.example.reminder.ReminderScheduler.scheduleDaily(ctx)
                             } else {
