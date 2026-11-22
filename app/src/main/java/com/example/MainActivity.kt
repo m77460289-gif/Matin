@@ -92,8 +92,7 @@ class MainActivity : ComponentActivity() {
                 requestPermissions(perms, 1001)
             }
         }
-        val prefs = getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE)
-        if (prefs.getBoolean("daily_reminder_enabled", true)) {
+        if (com.example.reminder.ReminderScheduler.isEnabled(this)) {
             com.example.reminder.ReminderScheduler.scheduleDaily(this)
         }
         setContent {
