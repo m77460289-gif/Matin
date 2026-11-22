@@ -1,6 +1,7 @@
 package com.example
 
 import android.content.Context
+import android.content.Intent
 import androidx.test.core.app.ApplicationProvider
 import androidx.room.Room
 import com.example.data.backup.BackupManager
@@ -18,6 +19,7 @@ import com.example.data.curriculum.ComputerCurriculumData
 import com.example.ui.viewmodel.KonkurViewModel
 import com.example.ui.viewmodel.calculateStudyStreak
 import com.example.reminder.ReminderScheduler
+import com.example.reminder.isReminderRescheduleAction
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.json.JSONObject
@@ -254,6 +256,25 @@ class ExampleRobolectricTest {
     } finally {
       database.close()
     }
+  }
+
+  @Test
+  fun `daily reminder is rescheduled after system clock and app changes`() {
+    val rescheduleActions = listOf(
+      Intent.ACTION_BOOT_COMPLETED,
+      Intent.ACTION_TIME_CHANGED,
+      Intent.ACTION_TIMEZONE_CHANGED,
+      Intent.ACTION_MY_PACKAGE_REPLACED,
+      "android.intent.action.TIMEZONE_OFFSET_CHANGED",
+      "android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED"
+    )
+
+    rescheduleActions.forEach { action ->
+      assertTrue("Expected reminder reschedule for action: $action", isReminderRescheduleAction(action))
+    }
+
+    assertFalse(isReminderRescheduleAction(Intent.ACTION_AIRPLANE_MODE_CHANGED))
+    assertFalse(isReminderRescheduleAction(null))
   }
 
   @Test
