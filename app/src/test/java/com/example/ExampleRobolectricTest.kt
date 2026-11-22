@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.room.Room
 import com.example.data.backup.BackupManager
 import com.example.data.database.AppDatabase
+import com.example.data.repository.StudyRepository
 import com.example.data.model.CheckInEntity
 import com.example.data.model.DailySlotStatusEntity
 import com.example.data.model.LeitnerCardEntity
@@ -14,6 +15,7 @@ import com.example.data.model.StudyNoteEntity
 import com.example.data.model.WeeklyScoreEntity
 import com.example.data.model.WrongAnswerEntity
 import com.example.data.curriculum.ComputerCurriculumData
+import com.example.ui.viewmodel.KonkurViewModel
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.json.JSONObject
@@ -202,6 +204,49 @@ class ExampleRobolectricTest {
       assertEquals(1, dao.getAllDailySlotStatusesOnce().size)
       assertEquals(1, dao.getAllCheckInsOnce().size)
       assertTrue(dao.getAllDailySlotStatusesOnce().single().isCompleted)
+    } finally {
+      database.close()
+    }
+  }
+
+  @Test
+  fun `running focus timer resumes after viewmodel recreation`() {
+    val application = ApplicationProvider.getApplicationContext<android.app.Application>()
+    application.getSharedPreferences("timer_state", Context.MODE_PRIVATE)
+      .edit().clear().commit()
+
+    val firstViewModel = KonkurViewModel(application)
+    firstViewModel.setTimerPreset(2, "جلسه آزمایشی")
+    firstViewModel.startOrResumeTimer()
+
+    val recreatedViewModel = KonkurViewModel(application)
+    val restored = recreatedViewModel.timerState.value
+
+    assertTrue("A running timer should resume after recreation", restored.isRunning)
+    assertEquals("جلسه آزمایشی", restored.sessionLabel)
+    assertTrue("Remaining time should be restored from its deadline", restored.remainingSeconds in 1..120)
+
+    firstViewModel.pauseTimer()
+    recreatedViewModel.pauseTimer()
+    application.getSharedPreferences("timer_state", Context.MODE_PRIVATE)
+      .edit().clear().commit()
+  }
+
+  @Test
+  fun `retrying timer completion with the same id does not duplicate study logs`() = runBlocking {
+    val context = ApplicationProvider.getApplicationContext<Context>()
+    val database = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
+      .allowMainThreadQueries()
+      .build()
+
+    try {
+      val repository = StudyRepository(database.studyDao())
+      repository.logStudyTime(2, "جلسه آزمایشی", "ثبت تایمر", id = -12345L)
+      repository.logStudyTime(2, "جلسه آزمایشی", "ثبت تایمر", id = -12345L)
+
+      val logs = database.studyDao().getAllStudyLogsOnce()
+      assertEquals(1, logs.size)
+      assertEquals(-12345L, logs.single().id)
     } finally {
       database.close()
     }
