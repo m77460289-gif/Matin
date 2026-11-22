@@ -13,9 +13,20 @@ import java.util.Calendar
  */
 object ReminderScheduler {
 
+    const val PREFERENCES_NAME = "app_prefs"
+    const val ENABLED_PREFERENCE = "daily_reminder_enabled"
+
     private const val REQUEST_CODE = 7301
 
+    fun isEnabled(context: Context): Boolean = context
+        .getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
+        .getBoolean(ENABLED_PREFERENCE, true)
+
     fun scheduleDaily(context: Context, hourOfDay: Int = 17, minute: Int = 0) {
+        if (!isEnabled(context)) {
+            cancel(context)
+            return
+        }
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
         val intent = Intent(context, ReminderReceiver::class.java)
         val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
