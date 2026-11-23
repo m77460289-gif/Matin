@@ -23,14 +23,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Validate JavaScript syntax
-        run: node --check app.js
+        run: |
+          node --check app.js
+          node --check data-store.js
+          node --check sw.js
+      - name: Run automated data and backup tests
+        run: node --test tests/data-store.test.cjs
+      - name: Validate web manifest
+        run: node -e "JSON.parse(require('node:fs').readFileSync('manifest.webmanifest', 'utf8'))"
       - name: Verify required web files
         run: |
           test -s index.html
           test -s app.js
+          test -s data-store.js
           test -s style.css
           test -s manifest.webmanifest
           test -s sw.js
+          test -s tests/data-store.test.cjs
 
   deploy:
     if: github.event_name != 'pull_request'

@@ -1,15 +1,32 @@
 (() => {
 "use strict";
 const KEY="konkur-web-v1";
-const defaults={
- logs:[], modules:{}, notes:[], cards:[], wrong:[], tasks:[], quizHistory:[],
- timer:{seconds:1500,running:false,end:0,label:"تمرکز"}, targetDate:"", dailyGoal:120,
-};
+const Store=window.KonkurData;
+if(!Store)throw new Error("ماژول اعتبارسنجی اطلاعات بارگذاری نشد.");
+let storageWarning="";
 let state=load(), page="dashboard", tick=null, quiz=null, flash=null;
 const $=s=>document.querySelector(s);
-const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-function load(){try{return {...defaults,...JSON.parse(localStorage.getItem(KEY)||"{}")}}catch(e){return {...defaults}}}
-function save(){localStorage.setItem(KEY,JSON.stringify(state));}
+const esc=Store.escapeHtml;
+function load(){
+ try{
+  const raw=window.localStorage.getItem(KEY);
+  return raw?Store.normalizeState(JSON.parse(raw)):Store.createDefaultState();
+ }catch(error){
+  console.error("Unable to load saved study data:",error);
+  storageWarning="خواندن اطلاعات ذخیره‌شده ممکن نشد؛ برای جلوگیری از آسیب بیشتر، برنامه با وضعیت خالی باز شد. فایل پشتیبان را بررسی کن.";
+  return Store.createDefaultState();
+ }
+}
+function save(){
+ try{
+  window.localStorage.setItem(KEY,JSON.stringify(state));
+  return true;
+ }catch(error){
+  console.error("Unable to save study data:",error);
+  toast("ذخیره اطلاعات انجام نشد. فضای مرورگر یا اجازه ذخیره‌سازی را بررسی کن و از اطلاعاتت خروجی بگیر.");
+  return false;
+ }
+}
 function toast(s){const n=document.createElement("div");n.className="toast";n.textContent=s;document.body.append(n);setTimeout(()=>n.remove(),2600)}
 const books=[
  {name:"دانش فنی پایه",grade:"پایه دهم",mods:["مفاهیم پایه فناوری اطلاعات","الگوریتم و فلوچارت","سیستم‌های عددی","سخت‌افزار و نرم‌افزار","شبکه و اینترنت"]},
@@ -81,8 +98,30 @@ function renderProgress(){const total=totalMinutes(),hours=Math.floor(total/60),
 function renderAnnual(){const target=state.targetDate;const diff=target?Math.ceil((new Date(target+"T23:59:59")-new Date())/86400000):null;return head("برنامه تا کنکور","تاریخ هدف را تعیین کن و مسیر باقی‌مانده را ببین.")+'<div class="grid two-col">'+panel("تاریخ کنکور یا هدف",'<div class="field"><label>تاریخ هدف</label><input id="targetDate" type="date" value="'+esc(target)+'"></div><div class="form-row"><button class="btn" data-action="save-target">ذخیره تاریخ</button></div><div class="callout">'+(diff===null?"هنوز تاریخ هدفی ثبت نکرده‌ای.":diff>=0?"تا تاریخ هدف "+diff+" روز باقی مانده است.":"تاریخ هدف گذشته است؛ تاریخ جدیدی تنظیم کن.")+'</div>')+panel("تقسیم مسیر پیشنهادی",'<div class="task"><span class="tag">مرحله ۱</span><span>یادگیری مفهومی کتاب‌ها و پودمان‌ها</span></div><div class="task"><span class="tag">مرحله ۲</span><span>تمرین و تست مبحثی پس از هر پودمان</span></div><div class="task"><span class="tag">مرحله ۳</span><span>مرور فاصله‌دار و رفع اشکال</span></div><div class="task"><span class="tag">مرحله ۴</span><span>آزمون جامع و تحلیل نتیجه</span></div>')+'</div>'}
 function renderParent(){return head("گزارش همراه","نمای خلاصه‌ای از فعالیت‌های ثبت‌شده برای پیگیری روند مطالعه.")+'<div class="grid stats">'+stat("زمان مطالعه امروز",mins(dayLogs().reduce((a,x)=>a+x.minutes,0)),"بر اساس ثبت امروز","◷")+stat("کل زمان مطالعه",mins(totalMinutes()),state.logs.length+" جلسه","⌁")+stat("پودمان تکمیل‌شده",doneModules(),pct()+"٪ از کل","▤")+stat("آزمون انجام‌شده",state.quizHistory.length,"آزمونک و شبیه‌ساز","✎")+'</div>'+panel("آخرین فعالیت‌ها",state.logs.length?'<table class="table"><thead><tr><th>تاریخ</th><th>درس</th><th>زمان</th></tr></thead><tbody>'+state.logs.slice(-12).reverse().map(x=>'<tr><td>'+new Date(x.date).toLocaleDateString("fa-IR")+'</td><td>'+esc(x.subject)+'</td><td>'+x.minutes+' دقیقه</td></tr>').join("")+'</tbody></table>':'<div class="empty">هنوز فعالیتی ثبت نشده است.</div>')+'<div class="callout">این گزارش فقط داده‌هایی را نشان می‌دهد که در همین مرورگر ثبت شده‌اند؛ برای ارسال گزارش به شخص دیگر، از پشتیبان‌گیری خروجی بگیر.</div>'}
 function render(){if(page==="dashboard")$("#content").innerHTML=renderDashboard();else if(page==="schedule")$("#content").innerHTML=renderSchedule();else if(page==="books")$("#content").innerHTML=renderBooks();else if(page==="timer")$("#content").innerHTML=renderTimer();else if(page==="quiz")$("#content").innerHTML=renderQuizHome(false);else if(page==="simulator")$("#content").innerHTML=renderQuizHome(true);else if(page==="notes")$("#content").innerHTML=renderNotes();else if(page==="review")$("#content").innerHTML=renderReview();else if(page==="progress")$("#content").innerHTML=renderProgress();else if(page==="annual")$("#content").innerHTML=renderAnnual();else if(page==="parent")$("#content").innerHTML=renderParent();if(page==="timer"&&state.timer.running)runTicker()}
-function exportData(){const blob=new Blob([JSON.stringify({...state,exportedAt:new Date().toISOString()},null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="konkur-computer-backup.json";a.click();URL.revokeObjectURL(a.href);toast("فایل پشتیبان آماده شد.")}
-function importData(file){const r=new FileReader();r.onload=()=>{try{const v=JSON.parse(r.result);if(!v||!Array.isArray(v.logs)||!v.modules||!Array.isArray(v.notes))throw Error();state={...defaults,...v};save();render();toast("اطلاعات با موفقیت بازیابی شد.")}catch(e){toast("فایل پشتیبان معتبر نیست.")}};r.readAsText(file)}
+function exportData(){
+ const blob=new Blob([JSON.stringify({...state,schemaVersion:Store.SCHEMA_VERSION,exportedAt:new Date().toISOString()},null,2)],{type:"application/json"});
+ const url=URL.createObjectURL(blob),a=document.createElement("a");
+ a.href=url;a.download="konkur-computer-backup.json";a.click();
+ setTimeout(()=>URL.revokeObjectURL(url),1000);
+ toast("فایل پشتیبان آماده شد.");
+}
+function importData(file){
+ if(!file)return;
+ if(file.size>10*1024*1024){toast("حجم فایل پشتیبان نباید بیشتر از ۱۰ مگابایت باشد.");return}
+ const r=new FileReader();
+ r.onerror=()=>toast("خواندن فایل پشتیبان ناموفق بود.");
+ r.onload=()=>{
+  let imported;
+  try{imported=Store.validateBackup(JSON.parse(String(r.result||"")))}
+  catch(error){toast(error.message||"فایل پشتیبان معتبر نیست.");return}
+  const previous=state;
+  state=imported;
+  if(!save()){state=previous;return}
+  clearInterval(tick);quiz=null;flash=null;
+  render();toast("اطلاعات با موفقیت اعتبارسنجی و بازیابی شد.");
+ };
+ r.readAsText(file);
+}
 document.addEventListener("click",e=>{
  const nav=e.target.closest("[data-page]");if(nav){go(nav.dataset.page);return}
  const g=e.target.closest("[data-go]");if(g){go(g.dataset.go);return}
@@ -120,5 +159,6 @@ $("#restoreFile").addEventListener("change",e=>{if(e.target.files[0])importData(
 $("#today").textContent=todayFa();
 document.querySelectorAll("[data-go]").forEach(x=>x.addEventListener("click",()=>go(x.dataset.go)));
 render();
+if(storageWarning)toast(storageWarning);
 if(state.timer.running){if(state.timer.end<=Date.now()){state.timer.running=false;addLog(Math.round((state.timer.total||1500)/60),state.timer.label,"بازیابی پایان تایمر");state.timer.seconds=state.timer.total||1500;save();toast("تایمر در زمان بسته بودن صفحه تمام شد و ثبت شد.")}else runTicker()}
 })();
