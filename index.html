@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101827"><meta name="description" content="کنکور کامپیوتر؛ برنامه‌ریزی، مطالعه، آزمون و پیگیری پیشرفت">
+<title>کنکور کامپیوتر | همراه مطالعه</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<div class="app-shell">
+<aside class="sidebar" id="sidebar">
+<a class="brand" href="#dashboard"><span class="brand-mark">ک</span><span><b>کنکور کامپیوتر</b><small>همراه هوشمند مطالعه</small></span></a>
+<div class="side-label">فضای مطالعه</div>
+<nav id="nav">
+<button class="nav-item active" data-page="dashboard"><i>⌂</i>داشبورد</button>
+<button class="nav-item" data-page="schedule"><i>▦</i>برنامه مطالعه</button>
+<button class="nav-item" data-page="books"><i>▤</i>کتاب‌ها و پودمان‌ها</button>
+<button class="nav-item" data-page="timer"><i>◷</i>تایمر تمرکز</button>
+<button class="nav-item" data-page="quiz"><i>✎</i>آزمونک</button>
+<button class="nav-item" data-page="simulator"><i>▣</i>آزمون شبیه‌ساز</button>
+<button class="nav-item" data-page="review"><i>↻</i>مرور لایتنر</button>
+<button class="nav-item" data-page="notes"><i>▧</i>یادداشت‌ها و اشتباهات</button>
+<button class="nav-item" data-page="progress"><i>◫</i>گزارش پیشرفت</button>
+<button class="nav-item" data-page="annual"><i>⌁</i>برنامه تا کنکور</button>
+<button class="nav-item" data-page="parent"><i>♡</i>گزارش همراه</button>
+</nav>
+<div class="sidebar-bottom"><span class="local-dot"></span>اطلاعات فقط روی همین مرورگر ذخیره می‌شود<button id="backupBtn" class="text-button">پشتیبان‌گیری / بازیابی</button></div>
+</aside>
+<main class="main">
+<header class="topbar"><button id="menuBtn" class="icon-button" aria-label="باز کردن منو">☰</button><div><span class="eyebrow">مسیر موفقیت تو</span><b id="pageTitle">داشبورد</b></div><div class="top-actions"><span class="today" id="today"></span><button class="avatar" data-go="parent">م</button></div></header>
+<div id="content" class="content" aria-live="polite"></div>
+<footer>کنکور کامپیوتر <span>•</span> نسخه وب شخصی <span>•</span> داده‌ها روی دستگاه شما</footer>
+</main></div>
+<input id="restoreFile" type="file" accept="application/json" hidden>
+<script src="./app.js"></script>
+</body></html>
