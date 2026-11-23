@@ -82,7 +82,7 @@ test("backup import rejects missing required sections and oversized collections"
 
 test("HTML-sensitive text is escaped before being inserted into the interface", () => {
   assert.equal(
-    Store.escapeHtml('<img src=x onerror="alert(1)">&\\''),
+    Store.escapeHtml("<img src=x onerror=\"alert(1)\">&'"),
     "&lt;img src=x onerror=&quot;alert(1)&quot;&gt;&amp;&#39;"
   );
   assert.equal(Store.escapeHtml(null), "");
