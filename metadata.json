@@ -1,6 +1,0 @@
-{
-  "name": "کنکور کامپیوتر",
-  "description": "برنامه‌ریزی مطالعه ۲ ساعت در روز و راهنمای تغییرات کتب درسی کنکور فنی‌حرفه‌ای کامپیوتر (شبکه و نرم‌افزار)",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}
