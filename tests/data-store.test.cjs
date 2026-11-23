@@ -14,7 +14,7 @@ test("default state has a complete, versioned schema", () => {
 
 test("legacy browser data is migrated without losing valid records", () => {
   const legacy = {
-    logs: [{ id: 123, date: "2026-11-23T10:00:00.000Z", minutes: 45, subject: "شبکه", detail: "" }],
+    logs: [{ id: 123.456, date: "2026-11-23T10:00:00.000Z", minutes: 45, subject: "شبکه", detail: "" }],
     modules: { "0-1": true },
     notes: [{ id: 456, title: "نکته", body: "متن", date: "2026-11-23T10:00:00.000Z" }],
     timer: { seconds: 900, running: false, end: 0, label: "تمرکز" },
