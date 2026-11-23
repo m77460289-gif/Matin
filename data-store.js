@@ -25,7 +25,7 @@
   }
 
   function validId(value) {
-    return (typeof value === "number" && Number.isSafeInteger(value) && value > 0) ||
+    return (typeof value === "number" && Number.isFinite(value) && value > 0 && value <= Number.MAX_SAFE_INTEGER) ||
       (typeof value === "string" && /^[A-Za-z0-9_-]{1,80}$/.test(value));
   }
 
